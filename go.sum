@@ -1,0 +1,6 @@
+github.com/fatih/camelcase v1.0.0 h1:hxNvNX/xYBp0ovncs8WyWZrOrpBNub/JfaMvbURyft8=
+github.com/fatih/camelcase v1.0.0/go.mod h1:yN2Sb0lFhZJUdVvtELVWefmrXpuZESvPmqwoZc+/fpc=
+github.com/pinzolo/casee v0.0.0-20160729104318-956b6baf666a h1:mO5XemwrIB+6xzqiNNSAz8MP/UFlu8fXn8/amqTYIXc=
+github.com/pinzolo/casee v0.0.0-20160729104318-956b6baf666a/go.mod h1:dNs9tp0e1Tst75lQVHa7QJNLdGOaddO3fdyEMHkMKxQ=
+github.com/vitaminwater/cgo.wchar v0.0.0-20160320123332-5dd6f4be3f2a h1:ob45GSHxZJ5H2Sf8WzcJWqNmqiBLr2QIHmun1its9d4=
+github.com/vitaminwater/cgo.wchar v0.0.0-20160320123332-5dd6f4be3f2a/go.mod h1:2DpU0Ek6K9QFbDyQwPa3PAOPSfdp38Pk+MXM6y/sDR0=
