@@ -1,3 +1,11 @@
 *.[o]
 *.py[oc]
 
+*.import
+doc/
+
+*.so
+*.dynlib
+*.dll
+
+gdnative/*.gen.*
