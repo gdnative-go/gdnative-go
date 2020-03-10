@@ -545,11 +545,11 @@ func go_method_func(godotObject *C.godot_object, methodData unsafe.Pointer, user
 
 	// If we have arguments, append the first argument.
 	if int(numArgs) > 0 {
-		arg := *args
+		arg := args
 		// Loop through all our arguments.
 		for i := 0; i < int(numArgs); i++ {
 			// Convert the variant into a Go Variant
-			variant := Variant{base: arg}
+			variant := Variant{base: *arg}
 
 			// Append the variant to our list of variants
 			variantArgs = append(variantArgs, variant)
@@ -559,7 +559,7 @@ func go_method_func(godotObject *C.godot_object, methodData unsafe.Pointer, user
 
 			// Add the size of the godot_variant pointer to our array pointer to get the position
 			// of the next argument.
-			arg = (*C.godot_variant)(unsafe.Pointer(arrayPtr + size))
+			arg = (**C.godot_variant)(unsafe.Pointer(arrayPtr + size))
 		}
 	}
 
