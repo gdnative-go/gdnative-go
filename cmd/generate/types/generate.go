@@ -290,6 +290,7 @@ func Generate() {
 	ignoreHeaders := []string{
 		"pluginscript/godot_pluginscript.h",
 		"net/godot_net.h",
+		"net/godot_webrtc.h",
 	}
 	ignoreStructs := []string{
 		"godot_char_type",
@@ -300,6 +301,7 @@ func Generate() {
 		"godot_gdnative_ext_nativescript_api_struct",
 		"godot_gdnative_ext_pluginscript_api_struct",
 		"godot_gdnative_init_options",
+		"godot_gdnative_ext_net_3_2_api_struct",
 		"godot_instance_binding_functions",
 		"godot_instance_create_func",
 		"godot_instance_destroy_func",
