@@ -26,7 +26,7 @@ type Logger struct {
 	StackNum int
 }
 
-// Print will print the given message to the Godot debugger and console.
+// Println will print the given message to the Godot debugger and console.
 func (l *Logger) Println(message ...interface{}) {
 	GDNative.checkInit()
 

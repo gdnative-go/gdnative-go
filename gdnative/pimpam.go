@@ -78,7 +78,7 @@ func (c *Class) register() {
 	}
 }
 
-// creates an InstanceCreateFunc value using the given CreateFunc and return it back
+// CreateConstructor creates an InstanceCreateFunc value using the given CreateFunc and return it back
 func CreateConstructor(className string, fn CreateFunc) InstanceCreateFunc {
 
 	constructor := InstanceCreateFunc{
@@ -90,7 +90,7 @@ func CreateConstructor(className string, fn CreateFunc) InstanceCreateFunc {
 	return constructor
 }
 
-// creates an InstanceDestroyFunc value using the given DestroyFunc and return it back
+// CreateDestructor creates an InstanceDestroyFunc value using the given DestroyFunc and return it back
 func CreateDestructor(className string, fn DestroyFunc) InstanceDestroyFunc {
 
 	destructor := InstanceDestroyFunc{

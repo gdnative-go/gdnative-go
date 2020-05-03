@@ -16,12 +16,14 @@ import (
 	"unsafe"
 )
 
+// PropertyUsageFlags is a Godot C godot_property_usage_flags wrapper
 type PropertyUsageFlags int
 
 func (p PropertyUsageFlags) getBase() C.godot_property_usage_flags {
 	return C.godot_property_usage_flags(p)
 }
 
+// Property usage flags for bit masks
 const (
 	PropertyUsageStorage             PropertyUsageFlags = 1
 	PropertyUsageEditor              PropertyUsageFlags = 2
@@ -46,7 +48,7 @@ const (
 	PropertyUsageNoEditor    PropertyUsageFlags = PropertyUsageStorage | PropertyUsageNetwork
 )
 
-// PropertyUsageFlags is a string-based lookup table of constants for PropertyUsageFlags.
+// PropertyUsageFlagsLookupMap is a string-based lookup table of constants for PropertyUsageFlags.
 var PropertyUsageFlagsLookupMap = map[string]PropertyUsageFlags{
 	"PropertyUsageStorage":             PropertyUsageStorage,
 	"PropertyUsageEditor":              PropertyUsageEditor,
@@ -175,6 +177,7 @@ func (i *InstanceMethod) getBase() C.godot_instance_method {
 	return i.base
 }
 
+// MethodAttributes is a Godot C godot_method_attributes wrapper
 type MethodAttributes struct {
 	base    C.godot_method_attributes
 	RPCType MethodRpcMode

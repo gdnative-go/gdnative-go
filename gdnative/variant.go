@@ -8,6 +8,7 @@ package gdnative
 */
 import "C"
 
+// NewVariantWithString creates a new Variant initialized with the given string
 func NewVariantWithString(str String) Variant {
 	var variant C.godot_variant
 	C.go_godot_variant_new_string(GDNative.api, &variant, str.getBase())
@@ -15,11 +16,13 @@ func NewVariantWithString(str String) Variant {
 	return Variant{base: &variant}
 }
 
+// GetType returns back the VaraintType for this Variant
 func (gdt *Variant) GetType() VariantType {
 	variantType := C.go_godot_variant_get_type(GDNative.api, gdt.getBase())
 	return VariantType(variantType)
 }
 
+// VariantArray is a wrapper around Godot C **godot_variant
 type VariantArray struct {
 	base  **C.godot_variant
 	array []Variant

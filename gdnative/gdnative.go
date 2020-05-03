@@ -29,8 +29,8 @@ func EnableDebug() {
 	debug = true
 }
 
-// Set our API to null. This will be set when 'godot_gdnative_init' is called
-// by Godot when the library is loaded.
+// GDNative is our API main entry point, it is first set here to null.
+// This will be set when 'godot_gdnative_init' is called by Godot when the library is loaded.
 var GDNative = &gdNative{}
 
 // gdNative is a structure that wraps the GDNativeAPI.
@@ -94,6 +94,7 @@ func godot_gdnative_terminate(options *C.godot_gdnative_terminate_options) {
 	NativeScript.api = nil
 }
 
+// NewEmptyVoid returns back a new C empty or void pointer
 func NewEmptyVoid() Pointer {
 	var empty C.void
 	return Pointer{base: unsafe.Pointer(&empty)}
@@ -182,12 +183,14 @@ func (p *Pointer) getBase() unsafe.Pointer {
 	return p.base
 }
 
+// Char is a Godot C char wrapper
 type Char string
 
 func (c Char) getBase() *C.char {
 	return C.CString(string(c))
 }
 
+// Double is a Godot C double wrapper
 type Double float64
 
 func (d Double) getBase() C.double {
@@ -216,18 +219,21 @@ func NewEmptyFloat() Pointer {
 	return Pointer{base: unsafe.Pointer(&obj)}
 }
 
+// Float is a Godot C float wrapper
 type Float float64
 
 func (f Float) getBase() C.float {
 	return C.float(f)
 }
 
+// Int64T is a Godot C int64_t wrapper
 type Int64T int64
 
 func (i Int64T) getBase() C.int64_t {
 	return C.int64_t(i)
 }
 
+// SignedChar is a Godot C schar wrapper
 type SignedChar int8
 
 func (s SignedChar) getBase() *C.schar {
@@ -296,6 +302,7 @@ func (w WcharT) getBase() *C.wchar_t {
 	return (*C.wchar_t)(wcharString.Pointer())
 }
 
+// AsString converts a WCharT into a string
 func (w WcharT) AsString() String {
 	return NewStringWithWideString(string(w))
 }

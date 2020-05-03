@@ -7,6 +7,8 @@ package gdnative
 */
 import "C"
 
+// NewStringName returns a StringName wrapper over a Godot C godot_string_name
+// initialized with the contents of the given name
 func NewStringName(name String) *StringName {
 	var dest C.godot_string_name
 	arg1 := name.getBase()
@@ -14,6 +16,8 @@ func NewStringName(name String) *StringName {
 	return &StringName{base: &dest}
 }
 
+// NewStringNameData returns a StringName wrapper over a Godot C godot_string_name
+// initialized with the given name
 func NewStringNameData(name Char) *StringName {
 	var dest C.godot_string_name
 	arg1 := name.getBase()

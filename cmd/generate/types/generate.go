@@ -247,7 +247,7 @@ func (v View) MethodIsConstructor(method Method) bool {
 	return false
 }
 
-// NotSelfArg return false if the given string contains any refrence to self or p_self
+// NotSelfArg return false if the given string contains any reference to self or p_self
 func (v View) NotSelfArg(str string) bool {
 	if str == "self" || str == "p_self" {
 		return false

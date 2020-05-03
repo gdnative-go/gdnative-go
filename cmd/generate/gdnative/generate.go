@@ -104,6 +104,7 @@ func Generate() {
 	}
 }
 
+// Parse parses the given package path and returns go APIs wrapping Godot C gdnative API
 func Parse(packagePath string) APIs {
 	// Open the gdnative_api.json file that defines the GDNative API.
 	body, err := ioutil.ReadFile(packagePath + "/godot_headers/gdnative_api.json")
@@ -118,6 +119,7 @@ func Parse(packagePath string) APIs {
 	return apis
 }
 
+// WriteTemplate writes the parsed template on the disk
 func WriteTemplate(templatePath, outputPath string, view View) {
 	// Create a template from our template file.
 	t, err := template.ParseFiles(templatePath)

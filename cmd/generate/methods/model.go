@@ -1,5 +1,6 @@
 package methods
 
+// Method represents a Go method
 type Method struct {
 	Arguments      []Argument
 	GoName         string
@@ -10,6 +11,7 @@ type Method struct {
 	ReturnsPointer bool
 }
 
+// Argument represents a Go method argument
 type Argument struct {
 	GoName    string
 	GoType    string
