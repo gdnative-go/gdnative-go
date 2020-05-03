@@ -517,7 +517,7 @@ func go_free_func(methodData unsafe.Pointer) {
 	freer := FreeFuncRegistry[methodDataString]
 
 	// Call the free function. We pass the methodData to the free
-	// function so it knows which clas to free.
+	// function so it knows which class to free.
 	freer(methodDataString)
 }
 

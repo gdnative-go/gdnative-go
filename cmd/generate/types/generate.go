@@ -60,12 +60,14 @@ func (v View) ToGoBaseType(base string) string {
 	return base
 }
 
+// ToGoName will convert a prefixed string to the correct Go name
 func (v View) ToGoName(str string) string {
 	str = strings.Replace(str, "godot_", "", 1)
 	str = strings.Replace(str, "GODOT_", "", 1)
 	return casee.ToPascalCase(str)
 }
 
+// ToGoReturnType will remove void return types
 func (v View) ToGoReturnType(str string) string {
 	str = v.ToGoArgType(str, true)
 	if strings.Contains(str, "Void") {
@@ -75,6 +77,7 @@ func (v View) ToGoReturnType(str string) string {
 	return str
 }
 
+// HasReturn returns true if the given string is void
 func (v View) HasReturn(str string) bool {
 	if str == "void" || str == "Void" || strings.Contains(str, "void") {
 		return false
@@ -82,6 +85,7 @@ func (v View) HasReturn(str string) bool {
 	return true
 }
 
+// HasPointerReturn returns true if the given string contains an indirection operator
 func (v View) HasPointerReturn(str string) bool {
 	if strings.Contains(str, "*") {
 		return true
@@ -89,6 +93,7 @@ func (v View) HasPointerReturn(str string) bool {
 	return false
 }
 
+// IsVoidPointerType returns true if the given string matches godot object void types
 func (v View) IsVoidPointerType(str string) bool {
 	switch str {
 	case "godot_object *", "const godot_object *":
@@ -97,6 +102,7 @@ func (v View) IsVoidPointerType(str string) bool {
 	return false
 }
 
+// IsWcharT returns true if the given strig contains wchar_t type
 func (v View) IsWcharT(str string) bool {
 	if strings.Contains(str, "wchar_t") {
 		return true
@@ -104,6 +110,8 @@ func (v View) IsWcharT(str string) bool {
 	return false
 }
 
+// IsDoublePointer returns true if the given string contains two indirection
+// operators one beside another
 func (v View) IsDoublePointer(str string) bool {
 	if strings.Contains(str, "**") {
 		return true
@@ -111,6 +119,7 @@ func (v View) IsDoublePointer(str string) bool {
 	return false
 }
 
+// ToGoArgType converts arguments types to Go valid types
 func (v View) ToGoArgType(str string, parseArray bool) string {
 	str = strings.Replace(str, "const ", "", -1)
 	str = v.ToGoName(str)
@@ -128,6 +137,7 @@ func (v View) ToGoArgType(str string, parseArray bool) string {
 	return str
 }
 
+// ToGoArgName converts argument names to idiomatic Go ones removing any prefixes
 func (v View) ToGoArgName(str string) string {
 	if strings.HasPrefix(str, "p_") {
 		str = strings.Replace(str, "p_", "", 1)
@@ -158,6 +168,7 @@ func (v View) ToGoArgName(str string) string {
 	return str
 }
 
+// IsBasicType returns true if the given sring is part of our defined basic types
 func (v View) IsBasicType(str string) bool {
 	switch str {
 	case "Uint", "WcharT", "Bool", "Double", "Error", "Int", "Int64T", "Uint64T", "Uint8T", "Uint32T", "Real", "MethodRpcMode", "PropertyHint", "SignedChar", "UnsignedChar", "Vector3Axis":
@@ -228,6 +239,7 @@ func (v View) MethodsList(typeDef TypeDef) []Method {
 	return methods
 }
 
+// MethodIsConstructor returns true if the given method contains the `_new` sub string
 func (v View) MethodIsConstructor(method Method) bool {
 	if strings.Contains(method.Name, "_new") {
 		return true
@@ -235,6 +247,7 @@ func (v View) MethodIsConstructor(method Method) bool {
 	return false
 }
 
+// NotSelfArg return false if the given string contains any refrence to self or p_self
 func (v View) NotSelfArg(str string) bool {
 	if str == "self" || str == "p_self" {
 		return false
@@ -242,6 +255,7 @@ func (v View) NotSelfArg(str string) bool {
 	return true
 }
 
+// StripPointer strips the indirection operator from a given string
 func (v View) StripPointer(str string) string {
 	str = strings.Replace(str, "*", "", 1)
 	str = strings.TrimSpace(str)
@@ -249,6 +263,7 @@ func (v View) StripPointer(str string) string {
 	return str
 }
 
+// ToGoMethodName cleans names from typed definitions and adapt to Go
 func (v View) ToGoMethodName(typeDef TypeDef, method Method) string {
 	methodName := method.Name
 
@@ -268,6 +283,7 @@ func (v View) ToGoMethodName(typeDef TypeDef, method Method) string {
 	return casee.ToPascalCase(methodName)
 }
 
+// Method defines a regular method components
 type Method struct {
 	Name       string
 	ReturnType string
@@ -401,6 +417,7 @@ func Generate() {
 	// pretty.Println(allMethodDefinitions)
 }
 
+// WriteTemplate writes the result from our template file
 func WriteTemplate(templatePath, outputPath string, view View) {
 	// Create a template from our template file.
 	t, err := template.ParseFiles(templatePath)
@@ -422,6 +439,7 @@ func WriteTemplate(templatePath, outputPath string, view View) {
 	}
 }
 
+// GoFmt runs gofmt on the given filepath
 func GoFmt(filePath string) {
 	cmd := exec.Command("gofmt", "-w", filePath)
 	var stdErr bytes.Buffer
@@ -433,6 +451,7 @@ func GoFmt(filePath string) {
 	}
 }
 
+// GoImports runs goimports in the given filepath
 func GoImports(filePath string) {
 	cmd := exec.Command("goimports", "-w", filePath)
 	var stdErr bytes.Buffer
