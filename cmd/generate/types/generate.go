@@ -15,6 +15,9 @@ import (
 	"gitlab.com/pimpam-games-studio/gdnative-go/cmd/generate/methods"
 )
 
+// don't try to use goimpots if its misding (nowadays goreturns is used mainly)
+var noGoImport bool
+
 // View is a structure that holds the api struct, so it can be used inside
 // our temaplte.
 type View struct {
@@ -408,10 +411,17 @@ func Generate() {
 
 		// Run gofmt on the generated Go file.
 		log.Println("  Running gofmt on output:", outFileName+"...")
-		GoFmt(packagePath + "/gdnative/" + outFileName)
+		if noGoImport == false {
+			GoFmt(packagePath + "/gdnative/" + outFileName)
+		}
 
 		log.Println("  Running goimports on output:", outFileName+"...")
-		GoImports(packagePath + "/gdnative/" + outFileName)
+		err := GoImports(packagePath + "/gdnative/" + outFileName)
+		if err != nil {
+			log.Println("  Trying to run goreturns on output:", outFileName+"...")
+			GoReturns(packagePath + "/gdnative/" + outFileName)
+			noGoImport = true
+		}
 	}
 
 	// pretty.Println(allMethodDefinitions)
@@ -452,13 +462,22 @@ func GoFmt(filePath string) {
 }
 
 // GoImports runs goimports in the given filepath
-func GoImports(filePath string) {
+func GoImports(filePath string) error {
 	cmd := exec.Command("goimports", "-w", filePath)
 	var stdErr bytes.Buffer
 	cmd.Stderr = &stdErr
 	err := cmd.Run()
+	return err
+}
+
+// GoReturns runs goreturns in the given filepath
+func GoReturns(filepath string) {
+	cmd := exec.Command("goreturns", "-w", filepath)
+	var stdErr bytes.Buffer
+	cmd.Stderr = &stdErr
+	err := cmd.Run()
 	if err != nil {
-		log.Println("Error running goimports:", err)
+		log.Println("Error running goreturns and goimports is not installed", err)
 		panic(stdErr.String())
 	}
 }
