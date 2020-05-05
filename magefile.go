@@ -42,7 +42,17 @@ func Generate() error {
 func Clean() error {
 
 	log.Println("Cleaning previous generation...")
-	return sh.Rm("./gdnative/*.gen.*")
+	path := filepath.Join(getCurrentFilePath(), "gdnative", "*.gen.*")
+	files, globErr := filepath.Glob(path)
+	if globErr != nil {
+		return globErr
+	}
+	for _, filename := range files {
+		if err := sh.Rm(filename); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RetrieveGodotDocumentation retrieves latest Godot documentation to attach docstrings
@@ -52,12 +62,12 @@ func RetrieveGodotDocumentation() error {
 	docPath := filepath.Join(localPath, "doc")
 	_, found := os.Stat(docPath)
 	if found == nil {
-		os.Chdir(docPath)
+		_ = os.Chdir(docPath)
 		log.Println("Godot documentation found. Pulling latest changes...")
 		if err := sh.Run("git", "pull", "origin", "master"); err != nil {
 			return fmt.Errorf("could not pull latest Godot documentation from git: %w", err)
 		}
-		os.Chdir(localPath)
+		_ = os.Chdir(localPath)
 		return nil
 	}
 
@@ -65,7 +75,7 @@ func RetrieveGodotDocumentation() error {
 	if err := os.MkdirAll(docPath, 0766); err != nil {
 		return fmt.Errorf("could not create a new directory on the disk: %w", err)
 	}
-	os.Chdir(docPath)
+	_ = os.Chdir(docPath)
 	if err := sh.Run("git", "init"); err != nil {
 		return fmt.Errorf("could not execute git init: %w", err)
 	}
