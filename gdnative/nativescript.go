@@ -558,7 +558,7 @@ func go_method_func(godotObject *C.godot_object, methodData unsafe.Pointer, user
 			variantArgs = append(variantArgs, variant)
 
 			// Convert the pointer into a uintptr so we can perform artithmetic on it.
-			arrayPtr := uintptr(unsafe.Pointer(args))
+			arrayPtr := uintptr(unsafe.Pointer(arg))
 
 			// Add the size of the godot_variant pointer to our array pointer to get the position
 			// of the next argument.
