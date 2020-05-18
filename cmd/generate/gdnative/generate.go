@@ -11,7 +11,7 @@ import (
 )
 
 // View is a structure that holds the api struct, so it can be used inside
-// our temaplte.
+// our template.
 type View struct {
 	API        API
 	StructType string

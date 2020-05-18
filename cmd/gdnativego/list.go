@@ -1,0 +1,74 @@
+// Copyright © 2019 - 2020 Oscar Campos <oscar.campos@thepimpam.com>
+// Copyright © 2017 - William Edwards
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License
+
+package main
+
+import (
+	"fmt"
+	"go/parser"
+	"go/token"
+	"os"
+
+	"gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
+)
+
+func (cmd *listCmd) Run(ctx *context) error {
+
+	fset := token.NewFileSet()
+	packages, parseErr := parser.ParseDir(fset, ctx.Path, cmd.filter, parser.ParseComments)
+	if parseErr != nil {
+		return fmt.Errorf("could not parse Go files at %s: %w", ctx.Path, parseErr)
+	}
+
+	for pkg, p := range packages {
+
+		fmt.Printf("Analyzing package: %s\n", pkg)
+		gdregistrable := gdnative.LookupRegistrableTypeDeclarations(p)
+		for key, data := range gdregistrable {
+			base := data.GetBase()
+			if base != "" {
+				base = fmt.Sprintf("(%s)", base)
+			}
+
+			fmt.Printf("Found Structure: %s%s\n", key, base)
+			for _, property := range data.GetProperties() {
+				fmt.Printf("\t\t%s\n", property)
+			}
+
+			fmt.Printf("\tConstructor: %s\n", data.GetConstructor())
+			fmt.Printf("\tDestructor: %s\n", data.GetDestructor())
+			for _, method := range data.GetMethods() {
+				fmt.Printf("\t%s\n", method)
+			}
+			fmt.Println()
+		}
+	}
+
+	return nil
+}
+
+func (cmd *listCmd) filter(info os.FileInfo) bool {
+
+	if info.IsDir() {
+		return false
+	}
+
+	length := len(info.Name())
+	if length > 7 && info.Name()[length-7:length-2] == ".gen." {
+		return false
+	}
+
+	return true
+}

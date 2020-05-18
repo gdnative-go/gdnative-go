@@ -15,11 +15,11 @@ import (
 	"gitlab.com/pimpam-games-studio/gdnative-go/cmd/generate/methods"
 )
 
-// don't try to use goimpots if its misding (nowadays goreturns is used mainly)
+// don't try to use goimports if its missing (nowadays goreturns is used mainly)
 var noGoImport bool
 
 // View is a structure that holds the api struct, so it can be used inside
-// our temaplte.
+// our template.
 type View struct {
 	Headers           []string
 	TypeDefinitions   []TypeDef
@@ -171,7 +171,7 @@ func (v View) ToGoArgName(str string) string {
 	return str
 }
 
-// IsBasicType returns true if the given sring is part of our defined basic types
+// IsBasicType returns true if the given string is part of our defined basic types
 func (v View) IsBasicType(str string) bool {
 	switch str {
 	case "Uint", "WcharT", "Bool", "Double", "Error", "Int", "Int64T", "Uint64T", "Uint8T", "Uint32T", "Real", "MethodRpcMode", "PropertyHint", "SignedChar", "UnsignedChar", "Vector3Axis":
@@ -296,14 +296,14 @@ type Method struct {
 // Generate will generate Go wrappers for all Godot base types
 func Generate() {
 
-	// Get the API Path so we can localte the godot api JSON.
+	// Get the API Path so we can localize the godot api JSON.
 	apiPath := os.Getenv("API_PATH")
 	if apiPath == "" {
 		panic("$API_PATH is not defined.")
 	}
 	packagePath := apiPath
 
-	// Set up headers/structs to ignore. Definitions in the given headers
+	// Set up headers/structures to ignore. Definitions in the given headers
 	// with the given name will not be added to the returned list of type definitions.
 	// We'll need to manually create these structures.
 	ignoreHeaders := []string{

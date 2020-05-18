@@ -18,7 +18,7 @@ import (
 	"log"
 	"unsafe"
 
-	"github.com/vitaminwater/cgo.wchar"
+	wchar "github.com/vitaminwater/cgo.wchar"
 )
 
 // debug determines whether or not we should log messages
@@ -66,7 +66,7 @@ func godot_gdnative_init(options *C.godot_gdnative_init_options) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.SetOutput(Log)
 	if debug {
-		log.Println("Initializing godot-go library.")
+		log.Println("Initializing gdnative-go library.")
 	}
 
 	// Find GDNative extensions that we support.
