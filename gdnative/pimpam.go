@@ -18,12 +18,27 @@ package gdnative
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 )
 
 // instances is a map of our created Godot classes. This will be
 // populated when Godot calls the CreateFunc
 var instances = map[string]*Class{}
+
+// Objectable is the interface every Godot Object has to implement
+type Objectable interface {
+	BaseClass() string
+	SetOwner(Object)
+	Owner() Object
+}
+
+// GDSignal is a NativeScript registrable signal
+type GDSignal struct {
+	name       string
+	signalName string
+	signal     *Signal
+}
 
 // Method is a NativeScript registrable function
 type Method struct {
@@ -52,14 +67,15 @@ type Class struct {
 	destroyFunc *InstanceDestroyFunc
 	methods     []Method
 	properties  []Property
+	signals     []GDSignal
 }
 
 // RegisterNewGodotClass creates a new ready to go Godot class for us and registers it with in Godot
 func RegisterNewGodotClass(isTool bool, name, base string, constructor *InstanceCreateFunc, destructor *InstanceDestroyFunc,
-	methods []Method, properties []Property) {
+	methods []Method, properties []Property, signals []GDSignal) {
 
 	// create a new Class value and registers it
-	godotClass := Class{isTool, name, base, constructor, destructor, methods, properties}
+	godotClass := Class{isTool, name, base, constructor, destructor, methods, properties, signals}
 	godotClass.register()
 }
 
@@ -87,9 +103,14 @@ func (c *Class) register() {
 		method.register()
 	}
 
-	// finally we iterate over any defined property and register them
+	// then iterate over any defined property and register them
 	for _, property := range c.properties {
 		property.register()
+	}
+
+	// finally iterate over any defined signal and register them
+	for _, signal := range c.signals {
+		signal.register()
 	}
 }
 
@@ -149,6 +170,31 @@ func (c *Class) createGenericDestructor() *InstanceDestroyFunc {
 	return &destroyFunc
 }
 
+// NewGodotSignal creates a new ready to go Godot signal for us and return it back
+func NewGodotSignal(className, name string, args []SignalArgument, defaults []Variant) GDSignal {
+
+	// create a new GDSignal value
+	godotSignal := GDSignal{
+		name:       className,
+		signalName: name,
+		signal: &Signal{
+			Name:           String(name),
+			NumArgs:        Int(len(args)),
+			NumDefaultArgs: Int(len(defaults)),
+			Args:           args,
+			DefaultArgs:    defaults,
+		},
+	}
+
+	return godotSignal
+}
+
+// registers a Signal value with in Godot
+func (s *GDSignal) register() {
+
+	NativeScript.RegisterSignal(s.signalName, s.signal)
+}
+
 // NewGodotMethod creates a new ready to go Godot method for us and return it back
 func NewGodotMethod(className, name string, method MethodFunc) Method {
 
@@ -187,20 +233,32 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 	attributes.HintString = String(hintString)
 	attributes.DefaultValue = NewVariantNil()
 	if hint != "" {
-		hintKey := fmt.Sprintf("PropertyHint%s", hint)
+		hintKey := hint
+		if strings.HasPrefix(hintKey, "gdnative.") {
+			hintKey = hint[9:]
+		} else if !strings.HasPrefix(hintKey, "PropertyHint") {
+			hintKey = fmt.Sprintf("PropertyHint%s", hint)
+		}
+
 		if attributes.Hint, ok = PropertyHintLookupMap[hintKey]; !ok {
 			var allowed []string
 			for key := range PropertyHintLookupMap {
 				allowed = append(allowed, strings.Replace(key, "PropertyHint", "", 1))
 			}
-			panic(fmt.Sprintf("unknown property hint %s, allowed types: %s", hint, strings.Join(allowed, ", ")))
+			panic(fmt.Sprintf("unknown property hint %s(%s), allowed types: %s", hint, hintKey, strings.Join(allowed, ", ")))
 		}
 	} else {
 		attributes.Hint = PropertyHintNone
 	}
 
 	if usage != "" {
-		usageKey := fmt.Sprintf("PropertyUsage%s", usage)
+		usageKey := usage
+		if strings.HasPrefix(usageKey, "gdnative.") {
+			usageKey = usage[9:]
+		} else if !strings.HasPrefix(usageKey, "PropertyUsage") {
+			usageKey = fmt.Sprintf("PropertyUsage%s", usage)
+		}
+
 		if attributes.Usage, ok = PropertyUsageFlagsLookupMap[usageKey]; !ok {
 			var allowed []string
 			for key := range PropertyUsageFlagsLookupMap {
@@ -213,7 +271,13 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 	}
 
 	if rset != "" {
-		rsetType := fmt.Sprintf("MethodRpcMode%s", rset)
+		rsetType := rset
+		if strings.HasPrefix(rsetType, "gdnative.") {
+			rsetType = rset[9:]
+		} else if !strings.HasPrefix(rsetType, "MethodRpcMode") {
+			rsetType = fmt.Sprintf("MethodRpcMode%s", rset)
+		}
+
 		if attributes.RsetType, ok = MethodRpcModeLookupMap[rsetType]; !ok {
 			var validTypes string
 			for key, _ := range MethodRpcModeLookupMap {
@@ -283,4 +347,88 @@ func (p *Property) createGenericGetter() *InstancePropertyGet {
 		FreeFunc:   func(methodData string) {},
 	}
 	return &instancePropertyGet
+}
+
+// SetSetter sets the setter on a Property value
+func (p *Property) SetSetter(setter *InstancePropertySet) {
+	p.setFunc = setter
+}
+
+// SetGetter sets the getter on a Property value
+func (p *Property) SetGetter(getter *InstancePropertyGet) {
+	p.getFunc = getter
+}
+
+// GetName returns back the property name
+func (p *Property) GetName() string {
+	return p.propertyName
+}
+
+// GoTypeToVariant will check the given Go type and convert it to its
+// Variant type. The value is returned as a Variant.
+func GoTypeToVariant(value reflect.Value) Variant {
+
+	var result Variant
+	switch v := value.Interface().(type) {
+	case Bool:
+		result = NewVariantBool(v)
+	case Int:
+		result = NewVariantInt(Int64T(v))
+	case Int64T:
+		result = NewVariantInt(v)
+	case Double:
+		result = NewVariantReal(v)
+	case Real:
+		result = NewVariantReal(Double(v))
+	case String:
+		result = NewVariantString(v)
+	case Vector2:
+		result = NewVariantVector2(v)
+	case Rect2:
+		result = NewVariantRect2(v)
+	case Vector3:
+		result = NewVariantVector3(v)
+	case Transform2D:
+		result = NewVariantTransform2D(v)
+	case Plane:
+		result = NewVariantPlane(v)
+	case Quat:
+		result = NewVariantQuat(v)
+	case Aabb:
+		result = NewVariantAabb(v)
+	case Basis:
+		result = NewVariantBasis(v)
+	case Transform:
+		result = NewVariantTransform(v)
+	case Color:
+		result = NewVariantColor(v)
+	case NodePath:
+		result = NewVariantNodePath(v)
+	case Rid:
+		result = NewVariantRid(v)
+	case Object:
+		result = NewVariantObject(v)
+	case Dictionary:
+		result = NewVariantDictionary(v)
+	case Array:
+		result = NewVariantArray(v)
+	case PoolByteArray:
+		result = NewVariantPoolByteArray(v)
+	case PoolIntArray:
+		result = NewVariantPoolIntArray(v)
+	case PoolRealArray:
+		result = NewVariantPoolRealArray(v)
+	case PoolStringArray:
+		result = NewVariantPoolStringArray(v)
+	case PoolVector2Array:
+		result = NewVariantPoolVector2Array(v)
+	case PoolVector3Array:
+		result = NewVariantPoolVector3Array(v)
+	case PoolColorArray:
+		result = NewVariantPoolColorArray(v)
+	default:
+		result = NewVariantObject(v.(Object))
+	}
+
+	return result
 }

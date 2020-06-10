@@ -1,3 +1,18 @@
+// Copyright © 2019 - 2020 Oscar Campos <oscar.campos@thepimpam.com>
+// Copyright © 2017 - William Edwards
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License
+
 // Package gdnative provides a wrapper around the Godot GDNative API.
 package gdnative
 
@@ -31,7 +46,7 @@ func EnableDebug() {
 
 // GDNative is our API main entry point, it is first set here to null.
 // This will be set when 'godot_gdnative_init' is called by Godot when the library is loaded.
-var GDNative = &gdNative{}
+var GDNative = new(gdNative)
 
 // gdNative is a structure that wraps the GDNativeAPI.
 type gdNative struct {
@@ -145,13 +160,12 @@ func MethodBindPtrCall(methodBind MethodBind, instance Object, args []Pointer, r
 		C.go_void_add_element(cArgs, arg.getBase(), C.int(i))
 	}
 
-	// Print all of the shit we're passing
-	for i, arg := range args {
-		if debug {
+	if debug {
+		// If debug is enabled print all the arguments we are passing
+		for i, arg := range args {
 			log.Println("arg", i, ": ", arg.getBase())
 		}
-	}
-	if debug {
+
 		log.Println("args: ", cArgs)
 		log.Println("returns: ", returns.getBase())
 		log.Println("object: ", unsafe.Pointer(instance.getBase()))
@@ -187,6 +201,8 @@ func (p *Pointer) getBase() unsafe.Pointer {
 type Char string
 
 func (c Char) getBase() *C.char {
+	// this might lead to memory leaks as this C memory
+	// is not gonna be garbage collected by Go runtime
 	return C.CString(string(c))
 }
 

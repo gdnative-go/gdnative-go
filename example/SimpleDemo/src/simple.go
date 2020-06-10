@@ -1,104 +1,56 @@
 package main
 
 import (
-	"fmt"
-
 	"gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
 )
 
+type Pepe struct{}
+
 // SimpleClass is a structure that we can register with Godot.
+//godot::register as SIMPLE
 type SimpleClass struct {
-	base gdnative.Object
+	Hit         gdnative.Signal
+	HP          gdnative.Int   `hint:"range" hint_string:"The player's Hit Points" usage:"Default"`
+	Mana, Blood gdnative.Int   `hint:"range" hint_string:"The player points to cast spells"`
+	IgnoreMe    gdnative.Float `-` // this property will be ignored
 }
 
-// Instances is a map of our created Godot classes. This will be populated when
-// Godot calls the CreateFunc.
-var Instances = map[string]*SimpleClass{}
+// New creates a new SimpleClass value and returns a pointer to it
+//godot::constructor(SimpleClass)
+func New() *SimpleClass {
 
-// NativeScriptInit will run on NativeScript initialization. It is responsible
-// for registering all our classes with Godot.
-func nativeScriptInit() {
-	gdnative.Log.Warning("Initializing nativescript from Go!")
-
-	// Define an instance creation function. This will be called when Godot
-	// creates a new instance of our class.
-	createFunc := gdnative.InstanceCreateFunc{
-		CreateFunc: simpleConstructor,
-		MethodData: "SIMPLE",
-		FreeFunc:   func(methodData string) {},
-	}
-
-	// Define an instance destroy function. This will be called when Godot
-	// asks our library to destroy our class instance.
-	destroyFunc := gdnative.InstanceDestroyFunc{
-		DestroyFunc: simpleDestructor,
-		MethodData:  "SIMPLE",
-		FreeFunc:    func(methodData string) {},
-	}
-
-	// Register our class with Godot.
-	gdnative.Log.Warning("Registering SIMPLE class...")
-	gdnative.NativeScript.RegisterClass(
-		"SIMPLE",
-		"Reference",
-		&createFunc,
-		&destroyFunc,
-	)
-
-	// Register a method with Godot.
-	gdnative.Log.Warning("Registering SIMPLE method...")
-	gdnative.NativeScript.RegisterMethod(
-		"SIMPLE",
-		"get_data",
-		&gdnative.MethodAttributes{
-			RPCType: gdnative.MethodRpcModeDisabled,
+	sc := SimpleClass{
+		// Signals must be defined as literals or they will be ignored by the gdnativego compiler
+		Hit: gdnative.Signal{
+			Name:           "hit",
+			NumArgs:        gdnative.Int(1),
+			NumDefaultArgs: gdnative.Int(1),
+			Args: []gdnative.SignalArgument{
+				{
+					Name:         gdnative.String("power"),
+					Type:         gdnative.Int(gdnative.VariantTypeInt),
+					Hint:         gdnative.PropertyHintRange,
+					HintString:   "Hit power value",
+					Usage:        gdnative.PropertyUsageDefault,
+					DefaultValue: gdnative.NewVariantInt(gdnative.Int64T(0)),
+				},
+			},
+			DefaultArgs: []gdnative.Variant{
+				gdnative.NewVariantInt(gdnative.Int64T(0)),
+			},
 		},
-		&gdnative.InstanceMethod{
-			Method:     simpleMethod,
-			MethodData: "SIMPLE",
-			FreeFunc:   func(methodData string) {},
-		},
-	)
-}
-
-func simpleConstructor(object gdnative.Object, methodData string) string {
-	gdnative.Log.Println("Creating new SimpleClass...")
-
-	// Create a new instance of our struct.
-	instance := &SimpleClass{
-		base: object,
 	}
-
-	// Use the pointer address as the instance ID
-	instanceID := fmt.Sprintf("%p", instance)
-	Instances[instanceID] = instance
-
-	// Return the instanceID
-	return instanceID
+	return &sc
 }
 
-func simpleDestructor(object gdnative.Object, methodData, userData string) {
-	gdnative.Log.Println("Destroying SimpleClass with ID:", userData, "...")
-	// Delete the instance from our map of instances
-	delete(Instances, userData)
-}
+// GetData is automatically registered to SimpleClass on Godot
+//godot::export as get_data
+func (sc *SimpleClass) GetData() gdnative.Variant {
 
-func simpleMethod(object gdnative.Object, methodData, userData string, numArgs int, args []gdnative.Variant) gdnative.Variant {
 	gdnative.Log.Println("SIMPLE.get_data() called!")
 
-	data := gdnative.NewStringWithWideString("World from godot-go from instance: " + object.ID() + "!")
-	ret := gdnative.NewVariantWithString(data)
-
-	return ret
-}
-
-// The "init()" function is a special Go function that will be called when this library
-// is initialized. Here we can register our Godot classes.
-func init() {
-	// Set the initialization script that will run upon NativeScript initialization.
-	// This function will handle using the NativeScript API to register all of our
-	// classes.
-	gdnative.SetNativeScriptInit(nativeScriptInit)
+	data := gdnative.NewStringWithWideString("Hello World from gdnative-go instance!")
+	return gdnative.NewVariantWithString(data)
 }
 
 // This never gets called, but it necessary to export as a shared library.

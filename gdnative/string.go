@@ -16,11 +16,6 @@ func NewString() String {
 	return ""
 }
 
-// NewStringCopy returns an empty String
-func NewStringCopy(src String) String {
-	return ""
-}
-
 func truncateString(str string, num int) string {
 	return str[0:num]
 }

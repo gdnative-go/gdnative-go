@@ -1,8 +1,28 @@
+// Copyright © 2019 - 2020 Oscar Campos <oscar.campos@thepimpam.com>
+// Copyright © 2017 - William Edwards
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License
+
 package gdnative
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
+	"go/printer"
+	"go/token"
+	"os"
+	"reflect"
 	"strings"
 )
 
@@ -10,8 +30,11 @@ const (
 	godotRegister    string = "godot::register"
 	godotConstructor string = "godot::constructor"
 	godotDestructor  string = "godot::destructor"
+	godotExport      string = "godot::export"
 )
 
+// LookupRegistrableTypeDeclarations parses the given package AST and adds any
+// relevant data to the registry so we can generate boilerplate registration code
 func LookupRegistrableTypeDeclarations(pkg *ast.Package) map[string]Registrable {
 
 	var classes = make(map[string]Registrable)
@@ -38,15 +61,20 @@ func LookupRegistrableTypeDeclarations(pkg *ast.Package) map[string]Registrable 
 
 				if gd.Doc != nil {
 					for _, line := range gd.Doc.List {
-						docstring := strings.ToLower(strings.TrimSpace(strings.ReplaceAll(line.Text, "/", "")))
+						original := strings.TrimSpace(strings.ReplaceAll(line.Text, "/", ""))
+						docstring := strings.ToLower(original)
 						if strings.HasPrefix(docstring, godotRegister) {
 
 							className := getClassName(tp)
 							class := registryClass{
-								base:       getBaseClassName(sp),
-								properties: lookupProperties(sp),
+								base: getBaseClassName(sp),
 							}
 							classes[className] = &class
+
+							// set alias if defined
+							if strings.Contains(docstring, " as ") {
+								class.alias = strings.TrimSpace(strings.Split(strings.Split(original, " as ")[1], " ")[0])
+							}
 						}
 					}
 				}
@@ -62,7 +90,8 @@ func LookupRegistrableTypeDeclarations(pkg *ast.Package) map[string]Registrable 
 			class.SetConstructor(lookupInstanceCreateFunc(className, file))
 			class.SetDestructor(lookupInstanceDestroyFunc(className, file))
 			class.AddMethods(lookupMethods(className, file))
-			// signals:     lookupSignals(className, file))
+			class.AddSignals(lookupSignals(className, file))
+			class.AddProperties(lookupProperties(className, file))
 		}
 	}
 
@@ -81,7 +110,7 @@ func getBaseClassName(sp *ast.StructType) string {
 
 	// TODO: need to make this way smarter to look for parent types of this type
 	var baseClassName string
-	for i := 0; i < sp.Fields.NumFields(); i++ {
+	for i := 0; i < sp.Fields.NumFields()-1; i++ {
 		expr, ok := sp.Fields.List[i].Type.(*ast.SelectorExpr)
 		if !ok {
 			continue
@@ -122,7 +151,7 @@ func lookupInstanceCreateFunc(className string, file *ast.File) *registryConstru
 					// make sure this is the only parenthesis structName
 					if strings.Count(structName, "(") > 1 || strings.Count(structName, ")") > 1 {
 						// this is a syntax error
-						panic(fmt.Errorf("could not parse constructor comment %s, many parenthesis", docstring))
+						fmt.Printf("could not parse constructor comment %s, many parenthesis", docstring)
 					}
 
 					structName = structName[1 : len(structName)-1]
@@ -213,7 +242,8 @@ func lookupInstanceDestroyFunc(className string, file *ast.File) *registryDestru
 					// make sure this is the only parenthesis structName
 					if strings.Count(structName, "(") > 1 || strings.Count(structName, ")") > 1 {
 						// this is a syntax error
-						panic(fmt.Errorf("could not parse destructor comment %s, many parenthesis", docstring))
+						fmt.Printf("could not parse destructor comment %s, many parenthesis", docstring)
+						os.Exit(1)
 					}
 
 					structName = structName[1 : len(structName)-1]
@@ -224,7 +254,8 @@ func lookupInstanceDestroyFunc(className string, file *ast.File) *registryDestru
 
 					destructor, err := validateDestructor(structName, fd)
 					if err != nil {
-						panic(err)
+						fmt.Printf("could not validate destructor: %s", err)
+						os.Exit(1)
 					}
 
 					return destructor
@@ -281,18 +312,21 @@ func lookupMethods(className string, file *ast.File) []*registryMethod {
 
 		// check for init function, if present fail and complain
 		if fd.Name.String() == "init" {
-			panic(fmt.Errorf(
+			fmt.Printf(
 				"init function present on files, you can not provide your own init function while autoregistering classes",
-			))
-		}
-
-		// ignore non exported methods
-		if !fd.Name.IsExported() {
-			continue
+			)
+			os.Exit(1)
 		}
 
 		// ignore non methods
 		if fd.Recv == nil {
+			continue
+		}
+
+		alias, exported := extractExportedAndAliasFromDoc(fd.Doc)
+
+		// ignore non exported methods
+		if !fd.Name.IsExported() && !exported {
 			continue
 		}
 
@@ -314,6 +348,7 @@ func lookupMethods(className string, file *ast.File) []*registryMethod {
 		funcName := fd.Name.String()
 		method := registryMethod{
 			name:         funcName,
+			alias:        alias,
 			class:        className,
 			params:       lookupParams(fd.Type.Params),
 			returnValues: lookupReturnValues(fd),
@@ -324,6 +359,75 @@ func lookupMethods(className string, file *ast.File) []*registryMethod {
 	return methods
 }
 
+// lookupSignals look up for every signal that is owned by the type and fill
+// a registration data structure with it
+func lookupSignals(className string, file *ast.File) []*registrySignal {
+
+	signals := []*registrySignal{}
+	ast.Inspect(file, func(node ast.Node) (cont bool) {
+
+		cont = true
+		_, ok := node.(*ast.StructType)
+		if ok {
+			return
+		}
+
+		cl, ok := node.(*ast.CompositeLit)
+		if !ok {
+			return
+		}
+
+		st, ok := cl.Type.(*ast.SelectorExpr)
+		if !ok {
+			return
+		}
+
+		if st.X.(*ast.Ident).Name == "gdnative" && st.Sel.Name == "Signal" {
+			signal := registrySignal{}
+			for i := range cl.Elts {
+				kv, ok := cl.Elts[i].(*ast.KeyValueExpr)
+				if !ok {
+					continue
+				}
+
+				key := kv.Key.(*ast.Ident).Name
+				switch key {
+				case "Name":
+					signal.name = kv.Value.(*ast.BasicLit).Value
+				case "Args":
+					arguments, ok := kv.Value.(*ast.CompositeLit)
+					if !ok {
+						fmt.Printf(
+							"WARNING: arguments on signal %s has the wrong type, it should be *ast.CompositeLit, arguments will be ignored\n",
+							signal.name,
+						)
+						signal.args = "[]*gdnative.SignalArgument{}"
+						continue
+					}
+					signal.args = parseSignalArgs(arguments)
+				case "DefaultArgs":
+					defaultArguments, ok := kv.Value.(*ast.CompositeLit)
+					if !ok {
+						fmt.Printf(
+							"WARNING: default arguments on signal %s has the wrong type, it should be *ast.CompositeLit, arguments will be ignored\n",
+							signal.name,
+						)
+						signal.defaults = "[]*gdnative.Variant{}"
+						continue
+					}
+					signal.defaults = parseSignalArgs(defaultArguments)
+				}
+			}
+
+			signals = append(signals, &signal)
+		}
+
+		return
+	})
+
+	return signals
+}
+
 func lookupParams(fields *ast.FieldList) []*registryMethodParam {
 
 	params := []*registryMethodParam{}
@@ -331,7 +435,8 @@ func lookupParams(fields *ast.FieldList) []*registryMethodParam {
 		for _, field := range fields.List {
 
 			kind := parseDefault(field.Type, "")
-			if kind == "" {
+			switch kind {
+			case "":
 				// if we don't have a type skip iteration
 				continue
 			}
@@ -363,57 +468,179 @@ func lookupReturnValues(fd *ast.FuncDecl) []*registryMethodReturnValue {
 	return returnValues
 }
 
-func lookupProperties(sp *ast.StructType) []*registryProperty {
+func lookupProperties(className string, file *ast.File) []*registryProperty {
 
 	properties := []*registryProperty{}
-	if sp.Fields.NumFields() > 0 {
-		for _, field := range sp.Fields.List {
-			if field.Names == nil {
-				// this field is a selector expression, skip it
+	for _, node := range file.Decls {
+		gd, ok := node.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+
+		for _, d := range gd.Specs {
+			tp, ok := d.(*ast.TypeSpec)
+			if !ok {
 				continue
 			}
 
-			kind := parseDefault(field.Type, "")
-			if kind == "" {
-				// if we don't have a type skip iteration
+			sp, ok := tp.Type.(*ast.StructType)
+			if !ok {
 				continue
 			}
 
-			if field.Tag != nil {
-				if len(field.Names) > 1 {
-					// this is a syntactic error
-					panic(fmt.Errorf(
-						"struct field tag repeated for fields %v, please put each field in a different line if you want to use field tags", field.Names,
-					))
-				}
-
-				if !field.Names[0].IsExported() {
-					continue
-				}
-
-				property := registryProperty{
-					name: field.Names[0].Name,
-					kind: kind,
-					tag:  field.Tag.Value,
-				}
-				properties = append(properties, &property)
+			if getClassName(tp) != className {
 				continue
 			}
 
-			for _, name := range field.Names {
-				if !name.IsExported() {
-					continue
-				}
+			if sp.Fields.NumFields() > 0 {
+				for _, field := range sp.Fields.List {
+					if field.Names == nil {
+						// this field is a selector expression, skip it
+						continue
+					}
 
-				properties = append(properties, &registryProperty{
-					name: name.String(),
-					kind: kind,
-				})
+					kind := parseDefault(field.Type, "")
+					switch kind {
+					case "":
+						// we don't have a type skip iteration
+						continue
+					case "gdnative.Signal":
+						// this is a signal skip it
+						continue
+					default:
+						typeFormat := fmt.Sprintf("VariantType%s", strings.ReplaceAll(kind, "gdnative.", ""))
+						_, ok := VariantTypeLookupMap[typeFormat]
+						if ok {
+							kind = fmt.Sprintf("gdnative.%s", typeFormat)
+							break
+						}
+
+						kind = "gdnative.VariantTypeObject"
+					}
+
+					alias, exported := extractExportedAndAliasFromDoc(field.Doc)
+
+					tmpProperties := []*registryProperty{}
+					for _, name := range field.Names {
+						if !name.IsExported() && !exported {
+							continue
+						}
+
+						tmpProperties = append(tmpProperties, &registryProperty{
+							name:  name.String(),
+							alias: alias,
+							kind:  kind,
+						})
+					}
+
+					if field.Tag != nil {
+						// check if this tag is the ignore tag
+						if field.Tag.Value == "`-`" || field.Tag.Value == "`_`" || field.Tag.Value == "`omit`" {
+							continue
+						}
+
+						// create a fake reflect.StructTag to lookup our keys
+						fakeTag := reflect.StructTag(strings.ReplaceAll(field.Tag.Value, "`", ""))
+						rset, rsetOk := fakeTag.Lookup("rset_type")
+						usage, usageOk := fakeTag.Lookup("usage")
+						hint, hintOk := fakeTag.Lookup("hint")
+						hintString, hintStringOk := fakeTag.Lookup("hint_string")
+						if !hintStringOk {
+							hintString = ""
+						}
+						if !hintOk {
+							hint = "None"
+						}
+						if !rsetOk {
+							rset = "Disabled"
+						}
+						if !usageOk {
+							usage = "Default"
+						}
+
+						for i := range tmpProperties {
+							mustSetPropertyTagHint(tmpProperties[i], hint)
+							mustSetPropertyTagRset(tmpProperties[i], rset)
+							mustSetPropertyTagUsage(tmpProperties[i], usage)
+							tmpProperties[i].hintString = hintString
+						}
+						properties = append(properties, tmpProperties...)
+					}
+				}
 			}
 		}
 	}
 
 	return properties
+}
+
+func mustSetPropertyTagRset(property *registryProperty, value string) {
+
+	rpcMode := fmt.Sprintf("MethodRpcMode%s", strings.Title(value))
+	_, ok := MethodRpcModeLookupMap[rpcMode]
+	if !ok {
+		valid := []string{}
+		for key := range MethodRpcModeLookupMap {
+			valid = append(valid, strings.ToLower(key[13:]))
+		}
+		fmt.Printf(
+			"on property %s: unknown rset_type %s, it must be one of:\n\t%s\n",
+			property.name, value, strings.Join(valid, "\n\t"),
+		)
+		os.Exit(1)
+	}
+	property.rset = fmt.Sprintf("gdnative.%s", rpcMode)
+}
+
+func mustSetPropertyTagHint(property *registryProperty, value string) {
+
+	hint := fmt.Sprintf("PropertyHint%s", strings.Title(value))
+	_, ok := PropertyHintLookupMap[hint]
+	if !ok {
+		valid := []string{}
+		for key := range PropertyHintLookupMap {
+			valid = append(valid, strings.ToLower(key[12:]))
+		}
+		fmt.Printf("on property %s: unknown hint %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
+		os.Exit(1)
+	}
+	property.hint = fmt.Sprintf("gdnative.%s", hint)
+}
+
+func mustSetPropertyTagUsage(property *registryProperty, value string) {
+
+	usage := fmt.Sprintf("PropertyUsage%s", strings.Title(value))
+	_, ok := PropertyUsageFlagsLookupMap[usage]
+	if !ok {
+		valid := []string{}
+		for key := range PropertyUsageFlagsLookupMap {
+			valid = append(valid, strings.ToLower(key[13:]))
+		}
+		fmt.Printf("on property %s: unknown usage %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
+		os.Exit(1)
+	}
+	property.usage = fmt.Sprintf("gdnative.%s", usage)
+}
+
+func extractExportedAndAliasFromDoc(doc *ast.CommentGroup) (string, bool) {
+
+	var alias string
+	var exported bool
+
+	if doc != nil {
+		for _, line := range doc.List {
+			docstring := strings.TrimSpace(strings.ReplaceAll(line.Text, "/", ""))
+			if strings.HasPrefix(docstring, godotExport) {
+				exported = true
+				if strings.Contains(docstring, " as ") {
+					alias = strings.TrimSpace(strings.Split(strings.Split(docstring, " as ")[1], " ")[0])
+				}
+				break
+			}
+		}
+	}
+
+	return alias, exported
 }
 
 func parseDefault(expr ast.Expr, def string) string {
@@ -463,7 +690,30 @@ func parseMap(field *ast.MapType) string {
 	return fmt.Sprintf(result, key, value)
 }
 
-func lookupSignals(className string, file *ast.File) registrySignal {
+func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) {
 
-	return registrySignal{}
+	var value string
+	key := expr.Key.(*ast.Ident).Name
+	switch t := expr.Value.(type) {
+	case *ast.BasicLit:
+		value = t.Value
+	case *ast.CompositeLit:
+		switch t2 := t.Type.(type) {
+		case *ast.KeyValueExpr:
+			_, value = parseKeyValueExpr(t2)
+		default:
+			value = parseDefault(t2, "gdnative.Pointer")
+		}
+	}
+
+	return key, value
+}
+
+func parseSignalArgs(composite *ast.CompositeLit) string {
+
+	buffer := bytes.NewBuffer(nil)
+	fileSet := token.NewFileSet()
+
+	printer.Fprint(buffer, fileSet, composite)
+	return buffer.String()
 }

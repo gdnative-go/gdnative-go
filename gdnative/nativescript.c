@@ -88,5 +88,12 @@ godot_signal_argument **go_godot_signal_argument_build_array(int length) {
 void go_godot_signal_argument_add_element(godot_signal_argument **array,
 					  godot_signal_argument *element,
 					  int index) {
-	array[index] = element;
+	godot_signal_argument copy;
+	copy.default_value = element->default_value;
+	copy.hint_string = element->hint_string;
+	copy.usage = element->usage;
+	copy.name = element->name;
+	copy.hint = element->hint;
+	copy.type = element->type;
+	array[index] = &copy;
 }

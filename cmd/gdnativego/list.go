@@ -43,14 +43,33 @@ func (cmd *listCmd) Run(ctx *context) error {
 			}
 
 			fmt.Printf("Found Structure: %s%s\n", key, base)
-			for _, property := range data.GetProperties() {
+
+			properties := data.GetProperties()
+			if len(properties) > 0 {
+				fmt.Printf("\tProperties:\n")
+			}
+			for _, property := range properties {
 				fmt.Printf("\t\t%s\n", property)
 			}
 
-			fmt.Printf("\tConstructor: %s\n", data.GetConstructor())
-			fmt.Printf("\tDestructor: %s\n", data.GetDestructor())
-			for _, method := range data.GetMethods() {
-				fmt.Printf("\t%s\n", method)
+			fmt.Printf("\tConstructor:\n\t\t%s\n", data.GetConstructor())
+			fmt.Printf("\tDestructor:\n\t\t%s\n", data.GetDestructor())
+
+			methods := data.GetMethods()
+			if len(methods) > 0 {
+				fmt.Printf("\tMethods:\n")
+			}
+			for _, method := range methods {
+				fmt.Printf("\t\t%s\n", method)
+			}
+
+			signals := data.Signals()
+			if len(signals) > 0 {
+				fmt.Printf("\tSignals:\n")
+			}
+			for _, signal := range data.Signals() {
+				fmt.Printf("\t\tsignal %s", signal.Name())
+
 			}
 			fmt.Println()
 		}

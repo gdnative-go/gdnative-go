@@ -35,10 +35,15 @@ type Registrable interface {
 	AddMethod(*registryMethod)
 	AddMethods([]*registryMethod)
 	Methods() []*registryMethod
+	AddSignal(*registrySignal)
+	AddSignals([]*registrySignal)
+	Signals() []*registrySignal
+	AddProperties([]*registryProperty)
+	Properties() []*registryProperty
 }
 
 type registryClass struct {
-	base        string
+	base, alias string
 	constructor *registryConstructor
 	destructor  *registryDestructor
 	methods     []*registryMethod
@@ -49,6 +54,11 @@ type registryClass struct {
 // GetBase returns back the Godot base class for this type as a string
 func (rc *registryClass) GetBase() string {
 	return rc.base
+}
+
+// Alias returns the class alias
+func (rc *registryClass) Alias() string {
+	return rc.alias
 }
 
 // GetConstructor returns back this type constructor as a string
@@ -149,15 +159,57 @@ func (rc *registryClass) AddMethod(method *registryMethod) {
 	}
 }
 
+// Signals returns back this type list of registrySignals
+func (rc *registryClass) Signals() []*registrySignal {
+	return rc.signals
+}
+
+// AddSignals adds a list of signals to this type
+func (rc *registryClass) AddSignals(signals []*registrySignal) {
+
+	for i := range signals {
+		rc.AddSignal(signals[i])
+	}
+}
+
+// AddSignal adds a signal to this type
+func (rc *registryClass) AddSignal(signal *registrySignal) {
+
+	if signal != nil {
+		rc.signals = append(rc.signals, signal)
+	}
+}
+
 // GetProperties returns back this class properties as strings
 func (rc *registryClass) GetProperties() []string {
 
 	properties := []string{}
 	for _, property := range rc.properties {
-		properties = append(properties, fmt.Sprintf("%s %s %s", property.name, property.kind, property.tag))
+		properties = append(properties, property.name)
 	}
 
 	return properties
+}
+
+// AddProperties adds a list of properties to this type
+func (rc *registryClass) AddProperties(properties []*registryProperty) {
+
+	for i := range properties {
+		rc.AddProperty(properties[i])
+	}
+}
+
+// AddProperty adds a property to this type
+func (rc *registryClass) AddProperty(property *registryProperty) {
+
+	if property != nil {
+		rc.properties = append(rc.properties, property)
+	}
+}
+
+// Properties returns back this class list of registryProperty
+func (rc *registryClass) Properties() []*registryProperty {
+	return rc.properties
 }
 
 type registryConstructor struct {
@@ -169,15 +221,17 @@ type registryDestructor struct {
 }
 
 type registryMethod struct {
-	class, name  string
-	params       []*registryMethodParam
-	returnValues []*registryMethodReturnValue
+	class, name, alias string
+	params             []*registryMethodParam
+	returnValues       []*registryMethodReturnValue
 }
 
+// GetName returns the method name
 func (rm *registryMethod) GetName() string {
 	return rm.name
 }
 
+// GodotName returns the Godot name for this virtual method
 func (rm *registryMethod) GodotName() string {
 
 	if rm.name[0] == 'V' && unicode.IsUpper(rune(rm.name[1])) {
@@ -185,6 +239,11 @@ func (rm *registryMethod) GodotName() string {
 	}
 
 	return rm.name
+}
+
+// Alias returns the method alias
+func (rm *registryMethod) Alias() string {
+	return rm.alias
 }
 
 // GetParams returns this type method params as a string
@@ -278,7 +337,7 @@ func (rm *registryMethod) NewVariantType() string {
 }
 
 type registryProperty struct {
-	name, kind, tag string
+	name, alias, kind, hint, hintString, usage, rset, setFunc, getFunc string
 }
 
 // Name returns the name of the property back
@@ -286,7 +345,67 @@ func (rp *registryProperty) Name() string {
 	return rp.name
 }
 
-type registrySignal struct{}
+// Alias returns the porperty alias back
+func (rp *registryProperty) Alias() string {
+	return rp.alias
+}
+
+// Hint returns the hint of the property back
+func (rp *registryProperty) Hint() string {
+	return rp.hint
+}
+
+// HintString returns the hint string of the property back
+func (rp *registryProperty) HintString() string {
+	return rp.hintString
+}
+
+// Usage returns the usage of the property back
+func (rp *registryProperty) Usage() string {
+	return rp.usage
+}
+
+// RsetType returns the rset of the property back
+func (rp *registryProperty) RsetType() string {
+	return rp.rset
+}
+
+// SetFunc returns this property set function or default one
+func (rp *registryProperty) SetFunc(class, instance string) string {
+	if rp.setFunc == "" {
+		rp.setFunc = fmt.Sprintf(`gdnative.NewGodotPropertySetter("%s", %s, %sInstances)`, class, rp.kind, instance)
+	}
+
+	return rp.setFunc
+}
+
+// GetFunc returns this property Get function or default one
+func (rp *registryProperty) GetFunc(class, instance string) string {
+	if rp.getFunc == "" {
+		rp.getFunc = fmt.Sprintf(`gdnative.NewGodotPropertyGetter("%s", %s, %sInstances)`, class, rp.kind, instance)
+	}
+
+	return rp.getFunc
+}
+
+type registrySignal struct {
+	name, args, defaults string
+}
+
+// Name returns this signal name back
+func (rs *registrySignal) Name() string {
+	return rs.name
+}
+
+// Args returns this signal args back
+func (rs *registrySignal) Args() string {
+	return rs.args
+}
+
+// Defaults returns this signal defaults back
+func (rs *registrySignal) Defaults() string {
+	return rs.defaults
+}
 
 type registryMethodParam struct {
 	name, kind string
