@@ -1,0 +1,71 @@
+image: golang:1.14.4-buster
+
+variables:
+    TAG: $CI_BUILD_REF_NAME
+    VERSION: "NONE"
+
+# define non taggable references
+.non_taggable_refs: &non_taggable_refs
+    - "/^master$"
+    - "tags"
+
+stages:
+    - code_health
+    - test
+    - version
+
+cache:
+    paths:
+        - $GOPATH/pkg/mod
+
+# ----------------- code health -----------------
+validate_commit_message:
+    stage: code_health
+    image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.20.4
+    script:
+        - release test-git
+    tags:
+        - docker-executor
+    allow_failure: false
+    except:
+        *non_taggable_refs
+
+code_format_analysys:
+    stage: code_health
+    script:
+        - go get -u github.com/sqs/goreturns
+        - if [[ $(goreturns -d .) -eq "" ]]; then echo "goreturns check successful"; exit 0; fi
+        - echo "ERROR - goreturns check failed - please run goreturns on your code and commit again"
+        - goreturns -d .
+        - exit 1
+    tags:
+        - docker-executor
+    allow_failure: false
+    except:
+        - tags
+
+# here will be golangci-lint call when I fix all inherited godot-go errors
+
+# ----------------- test -----------------
+compile_gdnativego:
+    stage: test
+    script:
+        - go build ./cmd/gdnativego
+    tags:
+        - docker-executor
+    except:
+        - tags
+
+# ----------------- version -----------------
+update_version:
+    stage: version
+    image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.20.4
+    script:
+        - release changelog
+        - release commit-and-tag --create-tag-pipeline CHANGELOG.md
+    allow_failure: true
+    tags:
+        - docker-executor
+    when: manual
+    only:
+        - master
