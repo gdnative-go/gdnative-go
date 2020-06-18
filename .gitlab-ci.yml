@@ -47,7 +47,9 @@ code_format_analysys:
 compile_gdnativego:
     stage: test
     script:
-        - go build ./cmd/gdnativego
+        - go run ./build/mage.go generate
+        - go run ./build/mage.go build
+        - go run ./build/mage.go gdnativego
     except:
         - tags
 
