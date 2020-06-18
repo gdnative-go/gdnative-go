@@ -4,7 +4,8 @@ import (
 	"gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
 )
 
-type Pepe struct{}
+// Ignored is ignored by the gdnativego compiler
+type Ignored struct{}
 
 // SimpleClass is a structure that we can register with Godot.
 //godot::register as SIMPLE
