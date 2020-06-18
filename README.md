@@ -14,6 +14,8 @@ write Godot games using Golang as development language you can take a look at
 **note**: looks like [godot-go](https://github.com/ShadowApex/godot-go) is unmaintained at the moment
 of writing this lines **2020-03-10**
 
+**note**: we are currently working into rewriting the  old godot-go completely fro scratch so at some poit we will be offering a full set of Godot  Golang wrappers as a separated library
+
 ## Motivation
 
 This project exists for three main reasons
@@ -27,3 +29,5 @@ recommend you to use the **godot-mono** version, if C# is not performant enough 
 concurrent native language to write your game code then take a look to [gdnative-rust](https://github.com/GodotNativeTools/godot-rust)
 project, it is actively maintained and in good health, you can also take a look to
 [godot-cpp](https://github.com/GodotNativeTools/godot-cpp) Godot's C++ bindings.
+
+At least while we rewrite the full Godot classes wrapper into a new Godot Goland API wrapper library
