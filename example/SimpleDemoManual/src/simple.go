@@ -23,40 +23,40 @@ func nativeScriptInit() {
 	// Define an instance creation function. This will be called when Godot
 	// creates a new instance of our class.
 	createFunc := gdnative.InstanceCreateFunc{
-		CreateFunc: simpleConstructor,
-		MethodData: "SIMPLE",
-		FreeFunc:   func(methodData string) {},
+		CreateFunc: simpleConstructor,          // reference to the constructor function
+		MethodData: "SIMPLE",                   // name of the class the constructor is attached to
+		FreeFunc:   func(methodData string) {}, // function for freeing resources (usually empty)
 	}
 
 	// Define an instance destroy function. This will be called when Godot
 	// asks our library to destroy our class instance.
 	destroyFunc := gdnative.InstanceDestroyFunc{
-		DestroyFunc: simpleDestructor,
-		MethodData:  "SIMPLE",
-		FreeFunc:    func(methodData string) {},
+		DestroyFunc: simpleDestructor,           // reference to the destructor function
+		MethodData:  "SIMPLE",                   // name of the class the destructor is attached to
+		FreeFunc:    func(methodData string) {}, // function for freeing resources (usually empty)
 	}
 
 	// Register our class with Godot.
 	gdnative.Log.Warning("Registering SIMPLE class...")
 	gdnative.NativeScript.RegisterClass(
-		"SIMPLE",
-		"Reference",
-		&createFunc,
-		&destroyFunc,
+		"SIMPLE",     // the name of the class we are registering
+		"Reference",  // class from which this class inherits from
+		&createFunc,  // class constructor
+		&destroyFunc, // class destructor
 	)
 
 	// Register a method with Godot.
 	gdnative.Log.Warning("Registering SIMPLE method...")
 	gdnative.NativeScript.RegisterMethod(
-		"SIMPLE",
-		"get_data",
-		&gdnative.MethodAttributes{
+		"SIMPLE",   // the name of the class we are registering the method within
+		"get_data", // the visible name for the method inside Godot
+		&gdnative.MethodAttributes{ // Method RPC type, this will typically be Disabled unless RPC is required
 			RPCType: gdnative.MethodRpcModeDisabled,
 		},
-		&gdnative.InstanceMethod{
-			Method:     simpleMethod,
-			MethodData: "SIMPLE",
-			FreeFunc:   func(methodData string) {},
+		&gdnative.InstanceMethod{ // method wrapper
+			Method:     simpleMethod,               // the simpleMethod function reference that implements our logic
+			MethodData: "get_data",                 // method name as will be used with in Godot
+			FreeFunc:   func(methodData string) {}, // function for freeing resources (usually empty)
 		},
 	)
 }
@@ -101,6 +101,6 @@ func init() {
 	gdnative.SetNativeScriptInit(nativeScriptInit)
 }
 
-// This never gets called, but it necessary to export as a shared library.
+// This never gets called, but it is necessary to export as a shared library.
 func main() {
 }
