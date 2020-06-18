@@ -99,7 +99,12 @@ func RetrieveGodotDocumentation() error {
 
 // Build builds the library to make sure everything is fine
 func Build() error {
-	return sh.Run("go", "build", "-ldflags", ldflags, "-x", "./gdnative...")
+	return sh.Run("go", "install", "-ldflags", ldflags, "-x", "./gdnative/...")
+}
+
+// Gdnativego builds the gdnativego compiler and installs it
+func Gdnativego() error {
+	return sh.Run("go", "install", "-ldflags", ldflags, "-x", "./cmd/gdnativego")
 }
 
 // getCurrentFilePath constructs and returns the current file path on the drive
