@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/vitaminwater/cgo.wchar"
+	wchar "github.com/vitaminwater/cgo.wchar"
 )
 
 // Log is used to log messages to Godot, and makes them viewable inside the

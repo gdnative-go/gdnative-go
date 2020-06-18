@@ -62,7 +62,7 @@ func (cmd *generateCmd) Run(ctx *context) error {
 
 	for pkg, p := range packages {
 
-		data := RegistryData{ Package: pkg, Classes: map[string]gdnative.Registrable{} }
+		data := RegistryData{Package: pkg, Classes: map[string]gdnative.Registrable{}}
 		registrable := gdnative.LookupRegistrableTypeDeclarations(p)
 		if len(registrable) == 0 {
 			fmt.Printf("not found any registrable sources on %s", ctx.Path)

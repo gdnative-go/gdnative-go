@@ -32,9 +32,10 @@ code_format_analysys:
     stage: code_health
     script:
         - go get -u github.com/sqs/goreturns
-        - if [[ $(goreturns -d .) -eq "" ]]; then echo "goreturns check successful"; exit 0; fi
+        - if [[ $(goreturns -d ./gdnative && goreturns -d ./cmd) -eq "" ]]; then echo "goreturns check successful"; exit 0; fi
         - echo "ERROR - goreturns check failed - please run goreturns on your code and commit again"
-        - goreturns -d .
+        - goreturns -d ./gdnative
+        - goreturns -d ./cmd
         - exit 1
     allow_failure: false
     except:
