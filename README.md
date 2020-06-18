@@ -14,7 +14,7 @@ write Godot games using Golang as development language you can take a look at
 **note**: looks like [godot-go](https://github.com/ShadowApex/godot-go) is unmaintained at the moment
 of writing this lines **2020-03-10**
 
-**note**: we are currently working into rewriting the  old godot-go completely fro scratch so at some poit we will be offering a full set of Godot  Golang wrappers as a separated library
+**note**: we are currently working into rewriting the  old godot-go completely from scratch so at some point we will be offering a full set of Godot  Golang wrappers as a separated library
 
 ## Motivation
 
