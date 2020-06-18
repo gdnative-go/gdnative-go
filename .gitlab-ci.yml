@@ -48,8 +48,6 @@ compile_gdnativego:
     stage: test
     script:
         - go build ./cmd/gdnativego
-    tags:
-        - docker-executor
     except:
         - tags
 
