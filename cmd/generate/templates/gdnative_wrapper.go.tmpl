@@ -164,7 +164,7 @@ func nativeScriptInit{{ $className }}() {
             }
 
             propertyField := reflect.ValueOf(reflect.ValueOf(class)).Elem().FieldByName(properties[i].GetName())
-            return gdnative.GoTypeToVariant(propertyField)
+            return propertyField.Interface().(gdnative.Variant)
         }
         getter.FreeFunc = func(methodData string) {}
             {{ if $class.Alias -}}
