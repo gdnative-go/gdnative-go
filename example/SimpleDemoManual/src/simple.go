@@ -23,16 +23,16 @@ func nativeScriptInit() {
 	// Define an instance creation function. This will be called when Godot
 	// creates a new instance of our class.
 	createFunc := gdnative.InstanceCreateFunc{
-		CreateFunc: simpleConstructor,          // reference to the constructor function
-		MethodData: "SIMPLE",                   // name of the class the constructor is attached to
+		CreateFunc: simpleConstructor,		// reference to the constructor function
+		MethodData: "SIMPLE",			// name of the class the constructor is attached to
 		FreeFunc:   func(methodData string) {}, // function for freeing resources (usually empty)
 	}
 
 	// Define an instance destroy function. This will be called when Godot
 	// asks our library to destroy our class instance.
 	destroyFunc := gdnative.InstanceDestroyFunc{
-		DestroyFunc: simpleDestructor,           // reference to the destructor function
-		MethodData:  "SIMPLE",                   // name of the class the destructor is attached to
+		DestroyFunc: simpleDestructor,		 // reference to the destructor function
+		MethodData:  "SIMPLE",			 // name of the class the destructor is attached to
 		FreeFunc:    func(methodData string) {}, // function for freeing resources (usually empty)
 	}
 
@@ -54,8 +54,8 @@ func nativeScriptInit() {
 			RPCType: gdnative.MethodRpcModeDisabled,
 		},
 		&gdnative.InstanceMethod{ // method wrapper
-			Method:     simpleMethod,               // the simpleMethod function reference that implements our logic
-			MethodData: "get_data",                 // method name as will be used with in Godot
+			Method:     simpleMethod,		// the simpleMethod function reference that implements our logic
+			MethodData: "SIMPLE",			// method name as will be used with in Godot
 			FreeFunc:   func(methodData string) {}, // function for freeing resources (usually empty)
 		},
 	)
