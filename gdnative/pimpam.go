@@ -105,7 +105,9 @@ func (c *Class) register() {
 
 	// then iterate over any defined property and register them
 	for _, property := range c.properties {
-		property.register()
+		if err := property.register(); err != nil {
+			panic(fmt.Errorf("could not register class properties: %w", err))
+		}
 	}
 
 	// finally iterate over any defined signal and register them
@@ -280,7 +282,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 
 		if attributes.RsetType, ok = MethodRpcModeLookupMap[rsetType]; !ok {
 			var validTypes string
-			for key, _ := range MethodRpcModeLookupMap {
+			for key := range MethodRpcModeLookupMap {
 				validTypes = fmt.Sprintf("%s %s", validTypes, strings.Replace(key, "MethodRpcMode", "", 1))
 			}
 			panic(fmt.Sprintf("unknown rset %q, allowed types: %s", rset, validTypes))
@@ -307,7 +309,7 @@ func (p *Property) register() error {
 
 	// if set and get functions are not defined generate generic ones
 	if p.setFunc == nil {
-		p.setFunc = p.createGenericSetter()
+		p.setFunc = p.CreateGenericSetter()
 	}
 	if p.setFunc == nil || p.getFunc == nil {
 		return fmt.Errorf("you can not register a property that does not defines both setter and getter functions")
@@ -318,7 +320,7 @@ func (p *Property) register() error {
 }
 
 // creates a generic setter method to set property values if none is provided
-func (p *Property) createGenericSetter() *InstancePropertySet {
+func (p *Property) CreateGenericSetter() *InstancePropertySet {
 
 	propertySetter := func(object Object, classProperty, instanceString string, property Variant) {
 		Log.Println(fmt.Sprintf("Creating Go generic property setter for %s.%s", p.name, p.propertyName))
@@ -334,7 +336,7 @@ func (p *Property) createGenericSetter() *InstancePropertySet {
 }
 
 // created a generic getter method to get property values if none is provided
-func (p *Property) createGenericGetter() *InstancePropertyGet {
+func (p *Property) CreateGenericGetter() *InstancePropertyGet {
 
 	propertyGetter := func(object Object, classProperty, instanceString string) Variant {
 		log.Println(fmt.Sprintf("Creating Go generic property getter for %s.%s", p.name, p.propertyName))

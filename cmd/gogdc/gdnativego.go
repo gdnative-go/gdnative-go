@@ -24,19 +24,17 @@ type context struct {
 	Verbose bool
 }
 
-type generateCmd struct {
-	path string
-}
+type generateCmd struct{}
 
 type listCmd struct{}
 
 // cli defines our command line structure using Kong
 var cli struct {
+	Generate generateCmd `cmd help:"Generates autotoregistration boilerplate Go code for user defined structures"` //nolint:govet
+	List     listCmd     `cmd help:"List user defined autoregistrable data structures"`                            //nolint:govet
+
 	Path    string `type:"path" default:"." help:"Path where execute the command"`
 	Verbose bool   `help:"Verbose output"`
-
-	Generate generateCmd `cmd help:"Generates autotoregistration boilerplate Go code for user defined structures"`
-	List     listCmd     `cmd help:"List user defined autoregistrable data structures"`
 }
 
 func main() {

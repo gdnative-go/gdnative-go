@@ -211,7 +211,6 @@ func validateConstructor(structName string, fd *ast.FuncDecl) (*registryConstruc
 				structName, structName, funcName, t.X.(*ast.Ident).Name,
 			)
 		}
-		break
 	default:
 		return nil, fmt.Errorf("constructors of %s values must return a pointer to *%s but %s returns %v", structName, structName, funcName, t)
 	}
@@ -361,7 +360,7 @@ func lookupMethods(className string, file *ast.File) []*registryMethod {
 
 // lookupSignals look up for every signal that is owned by the type and fill
 // a registration data structure with it
-func lookupSignals(className string, file *ast.File) []*registrySignal {
+func lookupSignals(className string, file ast.Node) []*registrySignal {
 
 	signals := []*registrySignal{}
 	ast.Inspect(file, func(node ast.Node) (cont bool) {
@@ -693,7 +692,7 @@ func parseMap(field *ast.MapType) string {
 	return fmt.Sprintf(result, key, value)
 }
 
-func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) {
+func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) { //nolint:unused
 
 	var value string
 	key := expr.Key.(*ast.Ident).Name

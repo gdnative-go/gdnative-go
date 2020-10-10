@@ -24,7 +24,6 @@ func (gdt *Variant) GetType() VariantType {
 
 // VariantArray is a wrapper around Godot C **godot_variant
 type VariantArray struct {
-	base  **C.godot_variant
 	array []Variant
 }
 

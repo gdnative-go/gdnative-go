@@ -435,9 +435,7 @@ var nativeScriptInit = []func(){}
 // This is used so you can define a function that will run to register all of the
 // classes that you want exposed to Godot.
 func SetNativeScriptInit(initFunc ...func()) {
-	for _, init := range initFunc {
-		nativeScriptInit = append(nativeScriptInit, init)
-	}
+	nativeScriptInit = append(nativeScriptInit, initFunc...)
 }
 
 /*------------------------------------------------------------------------------

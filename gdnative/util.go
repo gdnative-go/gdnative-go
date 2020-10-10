@@ -22,7 +22,7 @@ func unsafeToGoString(p unsafe.Pointer) string {
 // Attribution:
 //   Author: https://github.com/mantenie
 //   Source: https://github.com/serenize/snaker
-func camelToSnake(s string) string {
+func camelToSnake(s string) string { //nolint:deadcode,unused
 	var result string
 	var words []string
 	var lastPos int
@@ -60,7 +60,7 @@ func camelToSnake(s string) string {
 }
 
 // startsWithInitialism returns the initialism if the given string begins with it
-func startsWithInitialism(s string) string {
+func startsWithInitialism(s string) string { //nolint:unused
 	var initialism string
 	// the longest initialism is 5 char, the shortest 2
 	for i := 1; i <= 5; i++ {
@@ -73,7 +73,7 @@ func startsWithInitialism(s string) string {
 
 // commonInitialisms, taken from
 // https://github.com/golang/lint/blob/206c0f020eba0f7fbcfbc467a5eb808037df2ed6/lint.go#L731
-var commonInitialisms = map[string]bool{
+var commonInitialisms = map[string]bool{ //nolint:unused
 	"ACL":   true,
 	"API":   true,
 	"ASCII": true,
