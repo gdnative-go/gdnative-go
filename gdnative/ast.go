@@ -501,6 +501,7 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						continue
 					}
 
+					gdnativeKind := ""
 					kind := parseDefault(field.Type, "")
 					switch kind {
 					case "":
@@ -510,6 +511,7 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						// this is a signal skip it
 						continue
 					default:
+						gdnativeKind = kind
 						typeFormat := fmt.Sprintf("VariantType%s", strings.ReplaceAll(kind, "gdnative.", ""))
 						_, ok := VariantTypeLookupMap[typeFormat]
 						if ok {
@@ -529,9 +531,10 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						}
 
 						tmpProperties = append(tmpProperties, &registryProperty{
-							name:  name.String(),
-							alias: alias,
-							kind:  kind,
+							name:         name.String(),
+							alias:        alias,
+							kind:         kind,
+							gdnativeKind: gdnativeKind,
 						})
 					}
 
@@ -591,7 +594,7 @@ func mustSetPropertyTagRset(property *registryProperty, value string) {
 		)
 		os.Exit(1)
 	}
-	property.rset = fmt.Sprintf("gdnative.%s", rpcMode)
+	property.rset = strings.Title(value)
 }
 
 func mustSetPropertyTagHint(property *registryProperty, value string) {
@@ -606,7 +609,7 @@ func mustSetPropertyTagHint(property *registryProperty, value string) {
 		fmt.Printf("on property %s: unknown hint %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
 		os.Exit(1)
 	}
-	property.hint = fmt.Sprintf("gdnative.%s", hint)
+	property.hint = strings.Title(value)
 }
 
 func mustSetPropertyTagUsage(property *registryProperty, value string) {
@@ -621,7 +624,7 @@ func mustSetPropertyTagUsage(property *registryProperty, value string) {
 		fmt.Printf("on property %s: unknown usage %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
 		os.Exit(1)
 	}
-	property.usage = fmt.Sprintf("gdnative.%s", usage)
+	property.usage = strings.Title(value)
 }
 
 func extractExportedAndAliasFromDoc(doc *ast.CommentGroup) (string, bool) {

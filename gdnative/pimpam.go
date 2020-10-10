@@ -110,7 +110,7 @@ func (c *Class) register() {
 
 	// finally iterate over any defined signal and register them
 	for _, signal := range c.signals {
-		signal.register()
+		signal.register(c.name)
 	}
 }
 
@@ -190,9 +190,9 @@ func NewGodotSignal(className, name string, args []SignalArgument, defaults []Va
 }
 
 // registers a Signal value with in Godot
-func (s *GDSignal) register() {
+func (s *GDSignal) register(name string) {
 
-	NativeScript.RegisterSignal(s.signalName, s.signal)
+	NativeScript.RegisterSignal(s.name, s.signal)
 }
 
 // NewGodotMethod creates a new ready to go Godot method for us and return it back
@@ -245,7 +245,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 			for key := range PropertyHintLookupMap {
 				allowed = append(allowed, strings.Replace(key, "PropertyHint", "", 1))
 			}
-			panic(fmt.Sprintf("unknown property hint %s(%s), allowed types: %s", hint, hintKey, strings.Join(allowed, ", ")))
+			panic(fmt.Sprintf("unknown property hint %q, allowed types: %s", hint, strings.Join(allowed, ", ")))
 		}
 	} else {
 		attributes.Hint = PropertyHintNone
@@ -264,7 +264,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 			for key := range PropertyUsageFlagsLookupMap {
 				allowed = append(allowed, strings.Replace(key, "PropertyUsage", "", 1))
 			}
-			panic(fmt.Sprintf("unknown property usage %s, allowed types: %s", usage, strings.Join(allowed, ", ")))
+			panic(fmt.Sprintf("unknown property usage %q, allowed types: %s", usage, strings.Join(allowed, ", ")))
 		}
 	} else {
 		attributes.Usage = PropertyUsageDefault
@@ -283,7 +283,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 			for key, _ := range MethodRpcModeLookupMap {
 				validTypes = fmt.Sprintf("%s %s", validTypes, strings.Replace(key, "MethodRpcMode", "", 1))
 			}
-			panic(fmt.Errorf("rset must be one of the allowed types %s", validTypes))
+			panic(fmt.Sprintf("unknown rset %q, allowed types: %s", rset, validTypes))
 		}
 	} else {
 		attributes.RsetType = MethodRpcModeDisabled

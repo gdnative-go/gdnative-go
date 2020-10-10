@@ -337,7 +337,7 @@ func (rm *registryMethod) NewVariantType() string {
 }
 
 type registryProperty struct {
-	name, alias, kind, hint, hintString, usage, rset, setFunc, getFunc string
+	name, alias, kind, gdnativeKind, hint, hintString, usage, rset, setFunc, getFunc string
 }
 
 // Name returns the name of the property back
@@ -345,7 +345,12 @@ func (rp *registryProperty) Name() string {
 	return rp.name
 }
 
-// Alias returns the porperty alias back
+// Kind returns the property type back
+func (rp *registryProperty) Kind() string {
+	return rp.gdnativeKind
+}
+
+// Alias returns the property alias back
 func (rp *registryProperty) Alias() string {
 	return rp.alias
 }
@@ -368,6 +373,28 @@ func (rp *registryProperty) Usage() string {
 // RsetType returns the rset of the property back
 func (rp *registryProperty) RsetType() string {
 	return rp.rset
+}
+
+// SetConvert writes right syntax for conversion from gdnative.Variant into Go type
+func (rp *registryProperty) SetConvert() string {
+
+	switch rp.gdnativeKind {
+	case "gdnative.Int":
+		return "gdnative.Int(property.AsInt())"
+	default:
+		return fmt.Sprintf("property.As%s()", strings.Replace(rp.gdnativeKind, "gdnative.", "", -1))
+	}
+}
+
+// GetConvert writes right syntax for conversion from Go type into gdnative.Variant
+func (rp *registryProperty) GetConvert() string {
+
+	switch rp.gdnativeKind {
+	case "gdnative.Int":
+		return fmt.Sprintf("gdnative.NewVariant%s(gdnative.Int64T(class.class.%s))", rp.gdnativeKind[9:], rp.name)
+	default:
+		return fmt.Sprintf("gdnative.NewVariant%s(class.class.%s)", rp.gdnativeKind[9:], rp.name)
+	}
 }
 
 // SetFunc returns this property set function or default one

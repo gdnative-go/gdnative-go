@@ -388,10 +388,10 @@ func (n *nativeScript) RegisterProperty(name, path string, attributes *PropertyA
 func (n *nativeScript) RegisterSignal(name string, signal *Signal) {
 	// Construct the C struct based on the signal Go wrapper
 	var base C.godot_signal
-	signal.base = &base
+	signal.base = (*C.godot_signal)(unsafe.Pointer(&base))
 	signal.base.name = *(signal.Name.getBase())
-	signal.base.num_args = C.int(signal.NumArgs.getBase())
-	signal.base.num_default_args = C.int(signal.NumDefaultArgs.getBase())
+	signal.base.num_args = signal.NumArgs.getBase()
+	signal.base.num_default_args = signal.NumDefaultArgs.getBase()
 
 	// Build the arguments
 	argsArray := C.go_godot_signal_argument_build_array(C.int(signal.NumArgs))
@@ -404,16 +404,17 @@ func (n *nativeScript) RegisterSignal(name string, signal *Signal) {
 		cArg.hint_string = *(arg.HintString.getBase())
 		cArg.usage = arg.Usage.getBase()
 
-		C.go_godot_signal_argument_add_element(argsArray, &cArg, C.int(i))
+		C.go_godot_signal_argument_add_element(argsArray, (*C.godot_signal_argument)(unsafe.Pointer(&cArg)), C.int(i))
+
 	}
-	signal.base.args = *argsArray
+	signal.base.args = *(**C.godot_signal_argument)(unsafe.Pointer(&argsArray))
 
 	// Build the default arguments
 	variantArray := C.go_godot_variant_build_array(C.int(signal.NumDefaultArgs))
 	for i, variant := range signal.DefaultArgs {
 		C.go_godot_variant_add_element(variantArray, variant.getBase(), C.int(i))
 	}
-	signal.base.default_args = *variantArray
+	signal.base.default_args = *(**C.godot_variant)(unsafe.Pointer(&variantArray))
 
 	// Register the signal with Godot.
 	C.go_godot_nativescript_register_signal(
@@ -572,7 +573,7 @@ func go_method_func(godotObject *C.godot_object, methodData unsafe.Pointer, user
 			// Append the variant to our list of variants
 			variantArgs = append(variantArgs, variant)
 
-			// Convert the pointer into a uintptr so we can perform artithmetic on it.
+			// Convert the pointer into a uintptr so we can perform arithmetic on it.
 			arrayPtr := uintptr(unsafe.Pointer(arg))
 
 			// Add the size of the godot_variant pointer to our array pointer to get the position
