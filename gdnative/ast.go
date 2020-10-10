@@ -713,11 +713,6 @@ func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) { //nolint:unuse
 
 func parseSignalArgs(composite *ast.CompositeLit) string {
 
-	// buffer := bufio.NewBuffer(nil)
-	// fileSet := token.NewFileSet()
-
-	// printer.Fprint(buffer, fileSet, composite)
-	// return buffer.String()
 	buffer := []byte{}
 	buf := bytes.NewBuffer(buffer)
 	fileSet := token.NewFileSet()
