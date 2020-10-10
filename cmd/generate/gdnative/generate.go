@@ -42,7 +42,7 @@ func (v View) HasArgs(args [][]string) bool {
 // Generate generates the bindings from the JSON definition
 func Generate() {
 
-	// Get the API Path so we can localte the godot api JSON.
+	// Get the API Path so we can locate the godot api JSON.
 	apiPath := os.Getenv("API_PATH")
 	if apiPath == "" {
 		panic("$API_PATH is not defined.")
