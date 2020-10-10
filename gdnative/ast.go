@@ -24,8 +24,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-
-	"gopkg.in/bufio.v1"
 )
 
 const (
@@ -716,9 +714,15 @@ func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) {
 
 func parseSignalArgs(composite *ast.CompositeLit) string {
 
-	buffer := bufio.NewBuffer(nil)
+	// buffer := bufio.NewBuffer(nil)
+	// fileSet := token.NewFileSet()
+
+	// printer.Fprint(buffer, fileSet, composite)
+	// return buffer.String()
+	buffer := []byte{}
+	buf := bytes.NewBuffer(buffer)
 	fileSet := token.NewFileSet()
 
-	printer.Fprint(buffer, fileSet, composite)
-	return buffer.String()
+	printer.Fprint(buf, fileSet, composite)
+	return buf.String()
 }

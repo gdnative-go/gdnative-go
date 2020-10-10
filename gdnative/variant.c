@@ -13,3 +13,9 @@ void go_godot_variant_add_element(godot_variant **array, godot_variant *element,
 	godot_variant copy = *element;
 	array[index] = &copy;
 }
+
+godot_variant *go_godot_new_variant() {
+	godot_variant *var = malloc(sizeof(godot_variant));
+
+	return var;
+}

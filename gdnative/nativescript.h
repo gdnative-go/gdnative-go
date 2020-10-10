@@ -22,7 +22,6 @@ typedef void (*free_func)(void *);
 typedef godot_variant (*method)(godot_object *, void *, void *, int, godot_variant **);
 typedef void (*set_property_func)(godot_object *, void *, void *, godot_variant *);
 typedef godot_variant (*get_property_func)(godot_object *, void *, void *);
-godot_signal_argument **go_godot_signal_argument_build_array(int length);
-void go_godot_signal_argument_add_element(godot_signal_argument **array,
-					  godot_signal_argument *element, int index);
+
+godot_signal_argument *go_godot_new_signal_argument();
 #endif

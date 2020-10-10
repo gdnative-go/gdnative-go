@@ -394,20 +394,20 @@ func (n *nativeScript) RegisterSignal(name string, signal *Signal) {
 	signal.base.num_default_args = signal.NumDefaultArgs.getBase()
 
 	// Build the arguments
-	argsArray := C.go_godot_signal_argument_build_array(C.int(signal.NumArgs))
+	// argsArray := C.go_godot_signal_argument_build_array(C.int(signal.NumArgs))
+	argsArray := make([]*C.godot_signal_argument, int(signal.NumArgs))
 	for i, arg := range signal.Args {
-		var cArg C.godot_signal_argument
-		cArg.name = *(arg.Name.getBase())
-		cArg._type = arg.Type.getBase()
-		cArg.default_value = *(arg.DefaultValue.getBase())
-		cArg.hint = arg.Hint.getBase()
-		cArg.hint_string = *(arg.HintString.getBase())
-		cArg.usage = arg.Usage.getBase()
+		cArg := C.go_godot_new_signal_argument()
+		(*cArg).name = *(arg.Name.getBase())
+		(*cArg)._type = arg.Type.getBase()
+		(*cArg).default_value = *(arg.DefaultValue.getBase())
+		(*cArg).hint = arg.Hint.getBase()
+		(*cArg).hint_string = *(arg.HintString.getBase())
+		(*cArg).usage = arg.Usage.getBase()
 
-		C.go_godot_signal_argument_add_element(argsArray, (*C.godot_signal_argument)(unsafe.Pointer(&cArg)), C.int(i))
-
+		argsArray[i] = cArg
 	}
-	signal.base.args = *(**C.godot_signal_argument)(unsafe.Pointer(&argsArray))
+	signal.base.args = argsArray[0]
 
 	// Build the default arguments
 	variantArray := C.go_godot_variant_build_array(C.int(signal.NumDefaultArgs))
