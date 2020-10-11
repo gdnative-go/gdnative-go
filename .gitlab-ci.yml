@@ -56,9 +56,9 @@ code_linting:
     - golangci-lint run -v --timeout 5m
 
     # run goretuns formating
-    - if [[ $(goreturns -d .) -eq "" ]]; then echo "goreturns check success"; exit 0; fi
+    - if [[ $(goreturns -d ./gdnative ./cmd) -eq "" ]]; then echo "goreturns check success"; exit 0; fi
     - echo "ERROR - goreturn check failed"
-    - goreturns -d .
+    - goreturns -d ./gdnative ./cmd
     - exit 1
   allow_failure: false
   except:
