@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
 )
 

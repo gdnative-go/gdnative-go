@@ -18,7 +18,6 @@ package gdnative
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 )
 
