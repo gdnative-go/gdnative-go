@@ -8,4 +8,8 @@ doc/
 *.dynlib
 *.dll
 
+*_registrable.gen.go
 gdnative/*.gen.*
+
+.vscode/
+plan/

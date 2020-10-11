@@ -42,6 +42,8 @@ go_bindings_generation:
   stage: generation
   script:
     - go get -u github.com/sqs/goreturns
+    - export PATH="$PATH:$GOPATH/bin"
+    - git submodule update --init
     - go run build/mage.go generate
   allow_failure: false
   except:

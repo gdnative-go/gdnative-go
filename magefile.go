@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -42,7 +41,7 @@ func Generate() error {
 // Clean cleans previous generations
 func Clean() error {
 
-	log.Println("Cleaning previous generation...")
+	fmt.Println("Cleaning previous generation...")
 	path := filepath.Join(getCurrentFilePath(), "gdnative", "*.gen.*")
 	files, globErr := filepath.Glob(path)
 	if globErr != nil {
@@ -64,19 +63,25 @@ func RetrieveGodotDocumentation() error {
 	_, found := os.Stat(docPath)
 	if found == nil {
 		_ = os.Chdir(docPath)
-		log.Println("Godot documentation found. Pulling latest changes...")
+		defer func() {
+			_ = os.Chdir(localPath)
+		}()
+
+		fmt.Println("Godot documentation found. Pulling latest changes...")
 		if err := sh.Run("git", "pull", "origin", "master"); err != nil {
 			return fmt.Errorf("could not pull latest Godot documentation from git: %w", err)
 		}
-		_ = os.Chdir(localPath)
 		return nil
 	}
 
-	log.Println("Godot documentation not found. Cloning the repository...")
+	fmt.Println("Godot documentation not found. Cloning the repository...")
 	if err := os.MkdirAll(docPath, 0766); err != nil {
 		return fmt.Errorf("could not create a new directory on the disk: %w", err)
 	}
 	_ = os.Chdir(docPath)
+	defer func() {
+		_ = os.Chdir(localPath)
+	}()
 	if err := sh.Run("git", "init"); err != nil {
 		return fmt.Errorf("could not execute git init: %w", err)
 	}
@@ -113,7 +118,7 @@ func getCurrentFilePath() string {
 
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		log.Fatal("could not get current file path")
+		panic(fmt.Errorf("could not get current file path"))
 	}
 
 	return filepath.Join(filepath.Dir(filename))
