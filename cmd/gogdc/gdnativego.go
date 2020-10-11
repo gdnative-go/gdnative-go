@@ -15,10 +15,6 @@
 
 package main
 
-import (
-	"github.com/alecthomas/kong"
-)
-
 type context struct {
 	Path    string
 	Verbose bool
@@ -32,14 +28,8 @@ type listCmd struct{}
 var cli struct {
 	Generate generateCmd `cmd help:"Generates autotoregistration boilerplate Go code for user defined structures"` //nolint:govet
 	List     listCmd     `cmd help:"List user defined autoregistrable data structures"`                            //nolint:govet
+	Version  versionCmd  `cmd help:"Show version information and exit"`
 
 	Path    string `type:"path" default:"." help:"Path where execute the command"`
 	Verbose bool   `help:"Verbose output"`
-}
-
-func main() {
-
-	ctx := kong.Parse(&cli)
-	err := ctx.Run(&context{Path: cli.Path, Verbose: cli.Verbose})
-	ctx.FatalIfErrorf(err)
 }
