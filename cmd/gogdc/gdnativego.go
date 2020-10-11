@@ -28,7 +28,7 @@ type listCmd struct{}
 var cli struct {
 	Generate generateCmd `cmd help:"Generates autotoregistration boilerplate Go code for user defined structures"` //nolint:govet
 	List     listCmd     `cmd help:"List user defined autoregistrable data structures"`                            //nolint:govet
-	Version  versionCmd  `cmd help:"Show version information and exit"`
+	Version  versionCmd  `cmd help:"Show version information and exit"`                                            //nolint:govet
 
 	Path    string `type:"path" default:"." help:"Path where execute the command"`
 	Verbose bool   `help:"Verbose output"`

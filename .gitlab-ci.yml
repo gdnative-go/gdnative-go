@@ -21,9 +21,7 @@ variables:
 
 stages:
   - commits_check
-  - generation
   - linting
-  - build
   - version
 
 # ---------------- commits check ----------------
@@ -36,48 +34,32 @@ commit_messages_check:
   except:
     *release_refs
 
-# ---------------- bindings generation ----------------
-go_bindings_generation:
-  extends: .go-cache
-  stage: generation
-  script:
-    - go get -u github.com/sqs/goreturns
-    - export PATH="$PATH:$GOPATH/bin"
-    - git submodule update --init
-    - go run build/mage.go generate
-  allow_failure: false
-  except:
-    - tags
-
 # ---------------- code checks ----------------
 code_linting:
   extends: .go-cache
+  image:
+    name: golangci/golangci-lint:latest
+    entrypoint: [""]
   stage: linting
   script:
-    - golangci-lint run -v --timeout 5m
-  allow_failure: false
-  except:
-    - tags
-
-code_formatting:
-  extends: .go-cache
-  stage: linting
-  script:
+    # get goreturns and add it to the $PATH
     - go get -u github.com/sqs/goreturns
+    - export PATH="$PATH:$GOPATH/bin"
+
+    # checkout godot_headers submodule
+    - git submodule update --init
+
+    # generate bindings and build library
+    - go run build/mage.go generate
+
+    # run linters
+    - golangci-lint run -v --timeout 5m
+
+    # run goretuns formating
     - if [[ $(goreturns -d .) -eq "" ]]; then echo "goreturns check success"; exit 0; fi
     - echo "ERROR - goreturn check failed"
     - goreturns -d .
     - exit 1
-  allow_failure: false
-  except:
-    - tags
-
-# ---------------- build ----------------
-build_library:
-  extends: .go-cache
-  stage: build
-  script:
-    - go run build/mage.go build
   allow_failure: false
   except:
     - tags
