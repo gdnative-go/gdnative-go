@@ -1,68 +1,93 @@
-image: golang:1.14.4-buster
+# GDNative-Go Gitlab CI Pipelines
+image: golang:1.15-buster
 
 variables:
-    TAG: $CI_BUILD_REF_NAME
-    VERSION: "NONE"
+  TAG: $CI_BUILD_REF_NAME
 
-# define non taggable references
-.non_taggable_refs: &non_taggable_refs
-    - "/^master$"
-    - "tags"
+# release references
+.release_refs: &release_refs
+  - "/^master$"
+  - "tags"
+
+# Go Mod caching
+.go-cache:
+  variables:
+    GOPATH: $CI_PROJECT_DIR/.go
+  before_script:
+    - mkdir -p .go
+  cache:
+    paths:
+      - .go/pkg/mod
 
 stages:
-    - code_health
-    - test
-    - version
+  - commits_check
+  - generation
+  - linting
+  - build
+  - version
 
-cache:
-    paths:
-        - $GOPATH/pkg/mod
+# ---------------- commits check ----------------
+commit_messages_check:
+  stage: commits_check
+  image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.21.1
+  script:
+    - release test-git
+  allow_failure: false
+  except:
+    *release_refs
 
-# ----------------- code health -----------------
-validate_commit_message:
-    stage: code_health
-    image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.20.4
-    script:
-        - release test-git
-    allow_failure: false
-    except:
-        *non_taggable_refs
+# ---------------- bindings generation ----------------
+go_bindings_generation:
+  extends: .go-cache
+  stage: generation
+  script:
+    - go get -u github.com/sqs/goreturns
+    - go run build/mage.go generate
+  allow_failure: false
+  except:
+    - tags
 
-code_format_analysys:
-    stage: code_health
-    script:
-        - go get -u github.com/sqs/goreturns
-        - if [[ $(goreturns -d ./gdnative && goreturns -d ./cmd) -eq "" ]]; then echo "goreturns check successful"; exit 0; fi
-        - echo "ERROR - goreturns check failed - please run goreturns on your code and commit again"
-        - goreturns -d ./gdnative
-        - goreturns -d ./cmd
-        - exit 1
-    allow_failure: false
-    except:
-        - tags
+# ---------------- code checks ----------------
+code_linting:
+  extends: .go-cache
+  stage: linting
+  script:
+    - golangci-lint run -v --timeout 5m
+  allow_failure: false
+  except:
+    - tags
 
-# here will be golangci-lint call when I fix all inherited godot-go errors
+code_formatting:
+  extends: .go-cache
+  stage: linting
+  script:
+    - go get -u github.com/sqs/goreturns
+    - if [[ $(goreturns -d .) -eq "" ]]; then echo "goreturns check success"; exit 0; fi
+    - echo "ERROR - goreturn check failed"
+    - goreturns -d .
+    - exit 1
+  allow_failure: false
+  except:
+    - tags
 
-# ----------------- test -----------------
-compile_gdnativego:
-    stage: test
-    script:
-        - git submodule update --init --recursive
-        - go get -u github.com/sqs/goreturns
-        - go run ./build/mage.go generate
-        - go run ./build/mage.go build
-        - go run ./build/mage.go gdnativego
-    except:
-        - tags
+# ---------------- build ----------------
+build_library:
+  extends: .go-cache
+  stage: build
+  script:
+    - go run build/mage.go build
+  allow_failure: false
+  except:
+    - tags
 
-# ----------------- version -----------------
-update_version:
-    stage: version
-    image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.20.4
-    script:
-        - release changelog
-        - release commit-and-tag --create-tag-pipeline CHANGELOG.md
-    allow_failure: true
-    when: manual
-    only:
-        - master
+# ---------------- update version ----------------
+version_update:
+  stage: version
+  image: registry.gitlab.com/juhani/go-semrel-gitlab:v0.21.1
+  script:
+    - release changelog
+    - release commit-and-tag --create-tag-pipeline CHANGELOG.md
+  allow_failure: true
+  when: on_success
+  only:
+    - master
