@@ -36,7 +36,7 @@ project, it is actively maintained and in good health, you can also take a look 
 
 Yes, that is exactly what it means, this project will only provide bindings for NativeScript
 
-### It is al lost?
+### It is all lost?
 
 No, I am currently working into generate full bindings to Godot full API in a separate project that
 uses this one as a base interface between Go and Godot NativeScript. I believe both concepts are
