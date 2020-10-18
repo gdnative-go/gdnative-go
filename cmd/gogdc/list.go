@@ -17,6 +17,7 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
@@ -72,6 +73,9 @@ func (cmd *listCmd) Run(ctx *context) error {
 
 			}
 			fmt.Println()
+		}
+		if ctx.Verbose {
+			ast.Print(fset, p)
 		}
 	}
 

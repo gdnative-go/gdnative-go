@@ -1,19 +1,24 @@
 package main
 
 import (
+	"fmt"
+
 	"gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
 )
 
-// Ignored is ignored by the gdnativego compiler
-type Ignored struct{}
+// Ignored is ignored by gdnativego compiler
+type Ignored struct{} //nolint:deadcode,unused
 
 // SimpleClass is a structure that we can register with Godot.
 //godot::register as SIMPLE
 type SimpleClass struct {
 	Hit         gdnative.Signal
-	HP          gdnative.Int   `hint:"range" hint_string:"The player's Hit Points" usage:"Default"`
-	Mana, Blood gdnative.Int   `hint:"range" hint_string:"The player points to cast spells"`
-	IgnoreMe    gdnative.Float `-` // this property will be ignored
+	HP          gdnative.Int     `hint:"range" hint_string:"The player's Hit Points" usage:"Default"`
+	Mana, Blood gdnative.Int     `hint:"range" hint_string:"The player points to cast spells"`
+	Position    gdnative.Vector2 `hint:"none" hint_string:"The player position"`
+
+	// IgnoreMe property will be ignored
+	IgnoreMe gdnative.Float `-` //nolint
 }
 
 // New creates a new SimpleClass value and returns a pointer to it
@@ -21,7 +26,7 @@ type SimpleClass struct {
 func New() *SimpleClass {
 
 	sc := SimpleClass{
-		// Signals must be defined as literals or they will be ignored by the gdnativego compiler
+		HP: 100,
 		Hit: gdnative.Signal{
 			Name:           "hit",
 			NumArgs:        gdnative.Int(1),
@@ -50,7 +55,7 @@ func (sc *SimpleClass) GetData() gdnative.Variant {
 
 	gdnative.Log.Println("SIMPLE.get_data() called!")
 
-	data := gdnative.NewStringWithWideString("Hello World from gdnative-go instance!")
+	data := gdnative.NewStringWithWideString(fmt.Sprintf("Hello World from gdnative-go instance! HP value: %d", sc.HP))
 	return gdnative.NewVariantWithString(data)
 }
 

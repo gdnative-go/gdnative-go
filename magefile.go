@@ -5,16 +5,16 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
 
-var ldflags = "-s -w"
+var ldflags = "-s -w -X main.version=$VERSION_TAG -X main.commit=$COMMIT_HASH -X main.date=$BUILD_TIME -X main.builtBy=$BUILDER"
 
 var Default = Generate
 
@@ -41,7 +41,7 @@ func Generate() error {
 // Clean cleans previous generations
 func Clean() error {
 
-	log.Println("Cleaning previous generation...")
+	fmt.Println("Cleaning previous generation...")
 	path := filepath.Join(getCurrentFilePath(), "gdnative", "*.gen.*")
 	files, globErr := filepath.Glob(path)
 	if globErr != nil {
@@ -63,19 +63,25 @@ func RetrieveGodotDocumentation() error {
 	_, found := os.Stat(docPath)
 	if found == nil {
 		_ = os.Chdir(docPath)
-		log.Println("Godot documentation found. Pulling latest changes...")
+		defer func() {
+			_ = os.Chdir(localPath)
+		}()
+
+		fmt.Println("Godot documentation found. Pulling latest changes...")
 		if err := sh.Run("git", "pull", "origin", "master"); err != nil {
 			return fmt.Errorf("could not pull latest Godot documentation from git: %w", err)
 		}
-		_ = os.Chdir(localPath)
 		return nil
 	}
 
-	log.Println("Godot documentation not found. Cloning the repository...")
+	fmt.Println("Godot documentation not found. Cloning the repository...")
 	if err := os.MkdirAll(docPath, 0766); err != nil {
 		return fmt.Errorf("could not create a new directory on the disk: %w", err)
 	}
 	_ = os.Chdir(docPath)
+	defer func() {
+		_ = os.Chdir(localPath)
+	}()
 	if err := sh.Run("git", "init"); err != nil {
 		return fmt.Errorf("could not execute git init: %w", err)
 	}
@@ -86,7 +92,7 @@ func RetrieveGodotDocumentation() error {
 		return fmt.Errorf("could not activate core.sparseCheckout: %w", err)
 	}
 	sparseCheckoutsConfigFile := filepath.Join(".", ".git", "info", "sparse-checkout")
-	writeErr := ioutil.WriteFile(sparseCheckoutsConfigFile, []byte("doc/classes"), 0655)
+	writeErr := ioutil.WriteFile(sparseCheckoutsConfigFile, []byte("doc/classes"), 0600)
 	if writeErr != nil {
 		return fmt.Errorf("could not write .git/info/sparse-checkout file: %w", writeErr)
 	}
@@ -97,14 +103,14 @@ func RetrieveGodotDocumentation() error {
 	return nil
 }
 
-// Build builds the library to make sure everything is fine
+// Build builds the gdnative-go compiler gogdc (also builds the library)
 func Build() error {
-	return sh.Run("go", "install", "-ldflags", ldflags, "-x", "./gdnative/...")
+	return sh.RunWith(flagEnv(), "go", "build", "-ldflags", ldflags, "-x", "./cmd/gogdc")
 }
 
-// Gdnativego builds the gdnativego compiler and installs it
-func Gdnativego() error {
-	return sh.Run("go", "install", "-ldflags", ldflags, "-x", "./cmd/gdnativego")
+// Install builds and installs the gdnative-go compiler gogdc in $GOPATH/bin
+func Install() error {
+	return sh.RunWith(flagEnv(), "go", "install", "-ldflags", ldflags, "-x", "./cmd/gogdc")
 }
 
 // getCurrentFilePath constructs and returns the current file path on the drive
@@ -112,8 +118,27 @@ func getCurrentFilePath() string {
 
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		log.Fatal("could not get current file path")
+		panic(fmt.Errorf("could not get current file path"))
 	}
 
 	return filepath.Join(filepath.Dir(filename))
+}
+
+// fills environment with build data
+func flagEnv() map[string]string {
+
+	commitHash, _ := sh.Output("git", "rev-parse", "--short", "HEAD")
+	buildAuthor, _ := sh.Output("git", "log", "-1", "--pretty=format:%ae")
+	versionTag, _ := sh.Output("git", "describe", "--tags", "--abbrev=0")
+	if versionTag == "" {
+		versionTag = "v0.0.0-dev"
+	}
+
+	return map[string]string{
+		"COMMIT_HASH": commitHash,
+		"VERSION_TAG": versionTag,
+		"BUILD_TIME":  time.Now().Format("2006-01-02T15:04:05Z0700"),
+		"BUILDER":     buildAuthor,
+		"CGO_ENABLED": "1",
+	}
 }

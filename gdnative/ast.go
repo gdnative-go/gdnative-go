@@ -211,7 +211,6 @@ func validateConstructor(structName string, fd *ast.FuncDecl) (*registryConstruc
 				structName, structName, funcName, t.X.(*ast.Ident).Name,
 			)
 		}
-		break
 	default:
 		return nil, fmt.Errorf("constructors of %s values must return a pointer to *%s but %s returns %v", structName, structName, funcName, t)
 	}
@@ -361,7 +360,7 @@ func lookupMethods(className string, file *ast.File) []*registryMethod {
 
 // lookupSignals look up for every signal that is owned by the type and fill
 // a registration data structure with it
-func lookupSignals(className string, file *ast.File) []*registrySignal {
+func lookupSignals(className string, file ast.Node) []*registrySignal {
 
 	signals := []*registrySignal{}
 	ast.Inspect(file, func(node ast.Node) (cont bool) {
@@ -499,6 +498,7 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						continue
 					}
 
+					gdnativeKind := ""
 					kind := parseDefault(field.Type, "")
 					switch kind {
 					case "":
@@ -508,6 +508,7 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						// this is a signal skip it
 						continue
 					default:
+						gdnativeKind = kind
 						typeFormat := fmt.Sprintf("VariantType%s", strings.ReplaceAll(kind, "gdnative.", ""))
 						_, ok := VariantTypeLookupMap[typeFormat]
 						if ok {
@@ -527,9 +528,10 @@ func lookupProperties(className string, file *ast.File) []*registryProperty {
 						}
 
 						tmpProperties = append(tmpProperties, &registryProperty{
-							name:  name.String(),
-							alias: alias,
-							kind:  kind,
+							name:         name.String(),
+							alias:        alias,
+							kind:         kind,
+							gdnativeKind: gdnativeKind,
 						})
 					}
 
@@ -589,7 +591,7 @@ func mustSetPropertyTagRset(property *registryProperty, value string) {
 		)
 		os.Exit(1)
 	}
-	property.rset = fmt.Sprintf("gdnative.%s", rpcMode)
+	property.rset = strings.Title(value)
 }
 
 func mustSetPropertyTagHint(property *registryProperty, value string) {
@@ -604,7 +606,7 @@ func mustSetPropertyTagHint(property *registryProperty, value string) {
 		fmt.Printf("on property %s: unknown hint %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
 		os.Exit(1)
 	}
-	property.hint = fmt.Sprintf("gdnative.%s", hint)
+	property.hint = strings.Title(value)
 }
 
 func mustSetPropertyTagUsage(property *registryProperty, value string) {
@@ -619,7 +621,7 @@ func mustSetPropertyTagUsage(property *registryProperty, value string) {
 		fmt.Printf("on property %s: unknown usage %s, it must be one of %s", property.name, value, strings.Join(valid, ", "))
 		os.Exit(1)
 	}
-	property.usage = fmt.Sprintf("gdnative.%s", usage)
+	property.usage = strings.Title(value)
 }
 
 func extractExportedAndAliasFromDoc(doc *ast.CommentGroup) (string, bool) {
@@ -690,7 +692,7 @@ func parseMap(field *ast.MapType) string {
 	return fmt.Sprintf(result, key, value)
 }
 
-func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) {
+func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) { //nolint:unused
 
 	var value string
 	key := expr.Key.(*ast.Ident).Name
@@ -711,9 +713,10 @@ func parseKeyValueExpr(expr *ast.KeyValueExpr) (string, string) {
 
 func parseSignalArgs(composite *ast.CompositeLit) string {
 
-	buffer := bytes.NewBuffer(nil)
+	buffer := []byte{}
+	buf := bytes.NewBuffer(buffer)
 	fileSet := token.NewFileSet()
 
-	printer.Fprint(buffer, fileSet, composite)
-	return buffer.String()
+	printer.Fprint(buf, fileSet, composite)
+	return buf.String()
 }

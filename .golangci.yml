@@ -1,0 +1,44 @@
+# This file contains configuration options for golangci linter
+# Any options can be override creating a .golangci-.yml file
+# in deeper levels of the hierarchy path
+
+# linter settings
+linter-settings:
+  go-vet:
+    # report about shadowed variables
+    check-shadowing: true
+
+  maligned:
+    # print struct with more effective memory layout or not, false by default
+    suggest-new: true
+
+# enable or disable specific linters
+linters:
+  enable:
+    - interfacer
+    - maligned
+    - gosec
+    - nakedret
+    - stylecheck
+    - goconst
+    - gocyclo
+
+    # List of regexps of issue texts to exclude
+issues:
+  # Excluding configuration per path
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+
+run:
+  # skip the following files
+  skip-files:
+    - ".gen\\.go$"
+    - "_gen\\.go$"
+  # skip the following directories
+  skip-dirs:
+    - "(^|/)example($|/)"

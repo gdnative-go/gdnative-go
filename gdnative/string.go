@@ -15,7 +15,3 @@ func NewStringWithWideString(str string) String {
 func NewString() String {
 	return ""
 }
-
-func truncateString(str string, num int) string {
-	return str[0:num]
-}

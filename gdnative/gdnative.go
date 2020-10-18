@@ -252,7 +252,7 @@ func (i Int64T) getBase() C.int64_t {
 // SignedChar is a Godot C schar wrapper
 type SignedChar int8
 
-func (s SignedChar) getBase() *C.schar {
+func (s SignedChar) getBase() *C.schar { //nolint:unused
 	intVal := int8(s)
 	return (*C.schar)(unsafe.Pointer(&intVal))
 }
@@ -260,7 +260,7 @@ func (s SignedChar) getBase() *C.schar {
 // Uint is a Godot C uint wrapper
 type Uint uint
 
-func (u Uint) getBase() C.uint {
+func (u Uint) getBase() C.uint { //nolint:unused
 	return C.uint(u)
 }
 
@@ -274,7 +274,7 @@ func (u Uint8T) getBase() C.uint8_t {
 // Uint32T is a Godot C uint32_t wrapper
 type Uint32T uint32
 
-func (u Uint32T) getBase() C.uint32_t {
+func (u Uint32T) getBase() C.uint32_t { //nolint:unused
 	return C.uint32_t(u)
 }
 
@@ -290,18 +290,6 @@ func newWcharT(str *C.wchar_t) WcharT {
 	goStr, err := wchar.WcharStringPtrToGoString(unsafe.Pointer(str))
 	if err != nil {
 		log.Println("Error converting wchar_t to Go string:", err)
-	}
-	return WcharT(goStr)
-}
-
-// newWcharTWithLength will convert the given C.wchar_t into a Go string
-func newWcharTWithLength(str *C.wchar_t, length int) WcharT {
-	goStr, err := wchar.WcharStringPtrNToGoString(unsafe.Pointer(str), length)
-	if err != nil {
-		log.Println("Error converting wchar_t to Go string:", err)
-	}
-	if len(goStr) != length {
-		goStr = truncateString(goStr, length)
 	}
 	return WcharT(goStr)
 }

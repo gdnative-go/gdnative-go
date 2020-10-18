@@ -4,6 +4,7 @@ package gdnative
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -21,36 +22,27 @@ type View struct {
 // not the given element is the last in the slice or not. This is so we can
 // correctly insert commas for argument lists.
 func (v View) NotLastElement(n int, slice [][]string) bool {
-	if n != (len(slice) - 1) {
-		return true
-	}
-	return false
+	return n != (len(slice) - 1)
 }
 
 // NotVoid checks to see if the return string is void or not. This is used inside
 // our template so we can determine if we need to use the `return` keyword in
 // the function body.
 func (v View) NotVoid(ret string) bool {
-	if ret != "void" {
-		return true
-	}
-	return false
+	return ret != "void"
 }
 
 // HasArgs is a function we use inside the template to test whether or not the
 // function has arguments. This is so we can determine if we need to place a
 // comma.
 func (v View) HasArgs(args [][]string) bool {
-	if len(args) != 0 {
-		return true
-	}
-	return false
+	return len(args) != 0
 }
 
 // Generate generates the bindings from the JSON definition
 func Generate() {
 
-	// Get the API Path so we can localte the godot api JSON.
+	// Get the API Path so we can locate the godot api JSON.
 	apiPath := os.Getenv("API_PATH")
 	if apiPath == "" {
 		panic("$API_PATH is not defined.")
@@ -114,7 +106,9 @@ func Parse(packagePath string) APIs {
 
 	// Unmarshal the JSON into our struct.
 	var apis APIs
-	json.Unmarshal(body, &apis)
+	if err := json.Unmarshal(body, &apis); err != nil {
+		panic(errors.New("could not unmarshal Godot JSON API"))
+	}
 
 	return apis
 }
@@ -129,10 +123,10 @@ func WriteTemplate(templatePath, outputPath string, view View) {
 
 	// Open the output file for writing
 	f, err := os.Create(outputPath)
-	defer f.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 
 	// Write the template with the given view.
 	err = t.Execute(f, view)

@@ -50,10 +50,10 @@ package gdnative
 */
 import "C"
 
-{{/* Loop through and define all of the type definitions as Go structs */}}
+{{/* Loop through and define all of the type definitions as Go structs -*/}}
 {{ range $i, $typedef := $view.TypeDefinitions -}}
 	{{/* Handle struct definitions */}}
-	{{ if or (eq $typedef.Base "struct") (eq $typedef.Base "void") }}
+	{{ if or (eq $typedef.Base "struct") (eq $typedef.Base "void") -}}
 		// NewEmpty{{ $typedef.GoName }} will return a pointer to an empty
 		// initialized {{ $typedef.GoName }}. This is primarily used in
 		// conjunction with MethodBindPtrCall.
@@ -91,7 +91,7 @@ import "C"
 		}
 
 		{{/* The String struct is a special case to be compatible with Go strings -*/}}
-		{{ if (eq $typedef.GoName "String") }}
+		{{ if (eq $typedef.GoName "String") -}}
 			type {{ $typedef.GoName }} string
 
 			func (s String) getBase() *C.godot_string {
@@ -99,6 +99,7 @@ import "C"
 			}
 		{{/* Handle all other kinds of Godot structs -*/}}
 		{{ else }}
+			// {{ $typedef.GoName }} data structure wrapper
 			type {{ $typedef.GoName }} struct {
 				base *C.{{ $typedef.Name }}
 				{{/* Handle struct properties */}}
@@ -115,13 +116,14 @@ import "C"
 				{{ end -}}
 			}
 
+			// returns the wrapped C base data type for this type
 			func (gdt {{ $typedef.GoName }}) getBase() *C.{{ $typedef.Name }} {
 				return gdt.base
 			}
 		{{ end }}
 
 		{{/* Handle struct methods */}}
-		{{ range $j, $method := ($view.MethodsList $typedef) }}
+		{{ range $j, $method := ($view.MethodsList $typedef) -}}
 			{{/* Handle constructor methods -*/}}
 				// {{ $view.ToGoMethodName $typedef $method }} {{ $method.Name }} {{ $method.Arguments }} {{ $method.ReturnType }}
 			{{ if ($view.MethodIsConstructor $method) -}}

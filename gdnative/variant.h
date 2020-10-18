@@ -6,5 +6,6 @@
 
 godot_variant **go_godot_variant_build_array(int);
 void go_godot_variant_add_element(godot_variant **, godot_variant *, int);
+godot_variant *go_godot_new_variant();
 
 #endif

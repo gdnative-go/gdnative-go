@@ -78,22 +78,7 @@ godot_variant cgo_gateway_property_get_func(godot_object *obj,
 	return ret;
 }
 
-godot_signal_argument **go_godot_signal_argument_build_array(int length) {
-	godot_signal_argument **arr =
-	    malloc(sizeof(godot_signal_argument *) * length);
-
-	return arr;
-}
-
-void go_godot_signal_argument_add_element(godot_signal_argument **array,
-					  godot_signal_argument *element,
-					  int index) {
-	godot_signal_argument copy;
-	copy.default_value = element->default_value;
-	copy.hint_string = element->hint_string;
-	copy.usage = element->usage;
-	copy.name = element->name;
-	copy.hint = element->hint;
-	copy.type = element->type;
-	array[index] = &copy;
+godot_signal_argument *go_godot_new_signal_argument() {
+	godot_signal_argument *arg = malloc(sizeof(godot_signal_argument));
+	return arg;
 }

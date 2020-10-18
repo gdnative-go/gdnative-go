@@ -16,32 +16,28 @@
 package main
 
 import (
-	"github.com/alecthomas/kong"
+	"fmt"
+	"os"
+	"path/filepath"
 )
 
-type context struct {
-	Path    string
-	Verbose bool
-}
+const unknown string = "unknown"
 
-type generateCmd struct {
-	path string
-}
+var (
+	version = unknown
+	commit  = unknown
+	date    = unknown
+	builtBy = unknown
+)
 
-type listCmd struct{}
+type versionCmd struct{}
 
-// cli defines our command line structure using Kong
-var cli struct {
-	Path    string `type:"path" default:"." help:"Path where execute the command"`
-	Verbose bool   `help:"Verbose output"`
+func (cmd *versionCmd) Run(ctx *context) error {
 
-	Generate generateCmd `cmd help:"Generates autotoregistration boilerplate Go code for user defined structures"`
-	List     listCmd     `cmd help:"List user defined autoregistrable data structures"`
-}
-
-func main() {
-
-	ctx := kong.Parse(&cli)
-	err := ctx.Run(&context{Path: cli.Path, Verbose: cli.Verbose})
-	ctx.FatalIfErrorf(err)
+	appName := filepath.Base(os.Args[0])
+	fmt.Printf(
+		"%s %s-%s\n\tbuilt on: %s\n\tbuilt by: %s\n",
+		appName, version, commit, date, builtBy,
+	)
+	return nil
 }

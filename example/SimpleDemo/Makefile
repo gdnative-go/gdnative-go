@@ -2,7 +2,7 @@
 all: generate build
 
 generate:
-	/home/damnwidget/development/pimpam/engines/godot/gdnative-go/gdnativego generate --path="./src"
+	${GOPATH}/bin/gogdc generate --path="./src"
 
 build:
 	go build -v -buildmode=c-shared -o ./bin/libsimple.so ./src/*.go

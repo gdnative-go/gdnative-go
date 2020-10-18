@@ -18,7 +18,6 @@ package gdnative
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 )
 
@@ -105,12 +104,14 @@ func (c *Class) register() {
 
 	// then iterate over any defined property and register them
 	for _, property := range c.properties {
-		property.register()
+		if err := property.register(); err != nil {
+			panic(fmt.Errorf("could not register class properties: %w", err))
+		}
 	}
 
 	// finally iterate over any defined signal and register them
 	for _, signal := range c.signals {
-		signal.register()
+		signal.register(c.name)
 	}
 }
 
@@ -190,9 +191,9 @@ func NewGodotSignal(className, name string, args []SignalArgument, defaults []Va
 }
 
 // registers a Signal value with in Godot
-func (s *GDSignal) register() {
+func (s *GDSignal) register(name string) {
 
-	NativeScript.RegisterSignal(s.signalName, s.signal)
+	NativeScript.RegisterSignal(s.name, s.signal)
 }
 
 // NewGodotMethod creates a new ready to go Godot method for us and return it back
@@ -245,7 +246,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 			for key := range PropertyHintLookupMap {
 				allowed = append(allowed, strings.Replace(key, "PropertyHint", "", 1))
 			}
-			panic(fmt.Sprintf("unknown property hint %s(%s), allowed types: %s", hint, hintKey, strings.Join(allowed, ", ")))
+			panic(fmt.Sprintf("unknown property hint %q, allowed types: %s", hint, strings.Join(allowed, ", ")))
 		}
 	} else {
 		attributes.Hint = PropertyHintNone
@@ -264,7 +265,7 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 			for key := range PropertyUsageFlagsLookupMap {
 				allowed = append(allowed, strings.Replace(key, "PropertyUsage", "", 1))
 			}
-			panic(fmt.Sprintf("unknown property usage %s, allowed types: %s", usage, strings.Join(allowed, ", ")))
+			panic(fmt.Sprintf("unknown property usage %q, allowed types: %s", usage, strings.Join(allowed, ", ")))
 		}
 	} else {
 		attributes.Usage = PropertyUsageDefault
@@ -280,10 +281,10 @@ func NewGodotProperty(className, name, hint, hintString, usage, rset string,
 
 		if attributes.RsetType, ok = MethodRpcModeLookupMap[rsetType]; !ok {
 			var validTypes string
-			for key, _ := range MethodRpcModeLookupMap {
+			for key := range MethodRpcModeLookupMap {
 				validTypes = fmt.Sprintf("%s %s", validTypes, strings.Replace(key, "MethodRpcMode", "", 1))
 			}
-			panic(fmt.Errorf("rset must be one of the allowed types %s", validTypes))
+			panic(fmt.Sprintf("unknown rset %q, allowed types: %s", rset, validTypes))
 		}
 	} else {
 		attributes.RsetType = MethodRpcModeDisabled
@@ -307,7 +308,7 @@ func (p *Property) register() error {
 
 	// if set and get functions are not defined generate generic ones
 	if p.setFunc == nil {
-		p.setFunc = p.createGenericSetter()
+		p.setFunc = p.CreateGenericSetter()
 	}
 	if p.setFunc == nil || p.getFunc == nil {
 		return fmt.Errorf("you can not register a property that does not defines both setter and getter functions")
@@ -318,7 +319,7 @@ func (p *Property) register() error {
 }
 
 // creates a generic setter method to set property values if none is provided
-func (p *Property) createGenericSetter() *InstancePropertySet {
+func (p *Property) CreateGenericSetter() *InstancePropertySet {
 
 	propertySetter := func(object Object, classProperty, instanceString string, property Variant) {
 		Log.Println(fmt.Sprintf("Creating Go generic property setter for %s.%s", p.name, p.propertyName))
@@ -334,7 +335,7 @@ func (p *Property) createGenericSetter() *InstancePropertySet {
 }
 
 // created a generic getter method to get property values if none is provided
-func (p *Property) createGenericGetter() *InstancePropertyGet {
+func (p *Property) CreateGenericGetter() *InstancePropertyGet {
 
 	propertyGetter := func(object Object, classProperty, instanceString string) Variant {
 		log.Println(fmt.Sprintf("Creating Go generic property getter for %s.%s", p.name, p.propertyName))
@@ -362,73 +363,4 @@ func (p *Property) SetGetter(getter *InstancePropertyGet) {
 // GetName returns back the property name
 func (p *Property) GetName() string {
 	return p.propertyName
-}
-
-// GoTypeToVariant will check the given Go type and convert it to its
-// Variant type. The value is returned as a Variant.
-func GoTypeToVariant(value reflect.Value) Variant {
-
-	var result Variant
-	switch v := value.Interface().(type) {
-	case Bool:
-		result = NewVariantBool(v)
-	case Int:
-		result = NewVariantInt(Int64T(v))
-	case Int64T:
-		result = NewVariantInt(v)
-	case Double:
-		result = NewVariantReal(v)
-	case Real:
-		result = NewVariantReal(Double(v))
-	case String:
-		result = NewVariantString(v)
-	case Vector2:
-		result = NewVariantVector2(v)
-	case Rect2:
-		result = NewVariantRect2(v)
-	case Vector3:
-		result = NewVariantVector3(v)
-	case Transform2D:
-		result = NewVariantTransform2D(v)
-	case Plane:
-		result = NewVariantPlane(v)
-	case Quat:
-		result = NewVariantQuat(v)
-	case Aabb:
-		result = NewVariantAabb(v)
-	case Basis:
-		result = NewVariantBasis(v)
-	case Transform:
-		result = NewVariantTransform(v)
-	case Color:
-		result = NewVariantColor(v)
-	case NodePath:
-		result = NewVariantNodePath(v)
-	case Rid:
-		result = NewVariantRid(v)
-	case Object:
-		result = NewVariantObject(v)
-	case Dictionary:
-		result = NewVariantDictionary(v)
-	case Array:
-		result = NewVariantArray(v)
-	case PoolByteArray:
-		result = NewVariantPoolByteArray(v)
-	case PoolIntArray:
-		result = NewVariantPoolIntArray(v)
-	case PoolRealArray:
-		result = NewVariantPoolRealArray(v)
-	case PoolStringArray:
-		result = NewVariantPoolStringArray(v)
-	case PoolVector2Array:
-		result = NewVariantPoolVector2Array(v)
-	case PoolVector3Array:
-		result = NewVariantPoolVector3Array(v)
-	case PoolColorArray:
-		result = NewVariantPoolColorArray(v)
-	default:
-		result = NewVariantObject(v.(Object))
-	}
-
-	return result
 }

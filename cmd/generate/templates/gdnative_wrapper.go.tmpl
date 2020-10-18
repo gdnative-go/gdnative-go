@@ -24,10 +24,12 @@ package {{ $data.Package }}
 
 import (
     "fmt"
-    "reflect"
 
     "gitlab.com/pimpam-games-studio/gdnative-go/gdnative"
 )
+
+// used for FreeFunc
+var emptyFreeFunc = func(_ string) {}
 
 {{ range $className, $class := $data.Classes -}}
 // {{ $className }}Wrapper is a wrapper over {{ $className }} that will register it with in godot
@@ -131,55 +133,44 @@ func nativeScriptInit{{ $className }}() {
     // define properties attached to the instance
     properties := []gdnative.Property{
         {{ range $i, $property := $class.Properties -}}
-            {{ if $class.Alias -}}
-        gdnative.NewGodotProperty("{{ $class.Alias }}", "{{ if $property.Alias }}{{ $property.Alias }}{{ else }}{{ $property.Name }}{{ end }}", "{{ $property.Hint }}", "{{ $property.HintString }}", "{{ $property.Usage }}", "{{ $property.RsetType }}", nil, nil),
-            {{ else -}}
-        setter.MethodData = fmt.Sprintf("{{ $className }}::%s", propertyString)
-        getter.MethodData = fmt.Sprintf("{{ $className }}::%s", propertyString)
-        gdnative.NewGodotProperty("{{ $className }}", "{{ if $property.Alias }}{{ $property.Alias }}{{ else }}{{ $property.Name }}{{ end }}", "{{ $property.Hint }}", "{{ $property.HintString }}", "{{ $property.Usage }}", "{{ $property.RsetType }}", nil, nil),
-            {{ end -}}
+        
+        
+        
+
+        gdnative.NewGodotProperty(
+            "{{ if $class.Alias }}{{ $class.Alias }}{{ else }}{{ $className }}{{ end }}", 
+            "{{ if $property.Alias }}{{ $property.Alias }}{{ else }}{{ $property.Name }}{{ end }}", 
+            "{{ $property.Hint }}", "{{ $property.HintString }}", 
+            "{{ $property.Usage }}", "{{ $property.RsetType }}", 
+            &gdnative.InstancePropertySet{
+                SetFunc: func(object gdnative.Object, classProperty, instanceString string, property gdnative.Variant) {
+
+                    class, ok := SimpleClassInstances[instanceString]
+                    if !ok {
+                        panic(fmt.Sprintf("Set property %s does not exists on instance %s registry", classProperty, instanceString))
+                    }
+
+                    class.class.{{ $property.Name }} = {{ $property.SetConvert }}
+                },
+                MethodData: "{{ if $class.Alias }}{{ $class.Alias }}{{ else }}{{ $className }}{{ end }}::{{ if $property.Alias }}{{ $property.Alias }}{{ else }}{{ $property.Name }}{{ end }}",
+                FreeFunc: emptyFreeFunc,
+            }, 
+            &gdnative.InstancePropertyGet{
+                GetFunc: func(object gdnative.Object, classProperty, instanceString string) gdnative.Variant {
+
+                    class, ok := SimpleClassInstances[instanceString]
+                    if !ok {
+                        panic(fmt.Sprintf("Get property %q does not exists on instance %q registry", classProperty, instanceString))
+                    }
+
+                    return {{ $property.GetConvert }}
+                },
+                MethodData: "{{ if $class.Alias }}{{ $class.Alias }}{{ else }}{{ $className }}{{ end }}::{{ if $property.Alias }}{{ $property.Alias }}{{ else }}{{ $property.Name }}{{ end }}",
+                FreeFunc: emptyFreeFunc,
+            },
+        ),
         {{ end -}}
     }
-    {{/* second pass to add the setter/getters */}}
-    for i := range properties {
-        var setter gdnative.InstancePropertySet
-        setter.SetFunc = func(object gdnative.Object, classProperty, instanceString string, property gdnative.Variant) {
-
-            class, ok := {{ $className }}Instances[instanceString]
-            if !ok {
-                panic(fmt.Sprintf("Set property %s does not exists on instance %s registry", classProperty, instanceString))
-            }
-
-            propertyField := reflect.ValueOf(reflect.ValueOf(class)).Elem().FieldByName(properties[i].GetName())
-            propertyField.Set(reflect.ValueOf(property))
-        }
-        setter.FreeFunc = func(methodData string) {}
-
-        var getter gdnative.InstancePropertyGet
-        getter.GetFunc = func(object gdnative.Object, classProperty, instanceString string) gdnative.Variant {
-
-            class, ok := {{ $className }}Instances[instanceString]
-            if !ok {
-                panic(fmt.Sprintf("Set property %s does not exists on instance %s registry", classProperty, instanceString))
-            }
-
-            propertyField := reflect.ValueOf(reflect.ValueOf(class)).Elem().FieldByName(properties[i].GetName())
-            return gdnative.GoTypeToVariant(propertyField)
-        }
-        getter.FreeFunc = func(methodData string) {}
-            {{ if $class.Alias -}}
-        setter.MethodData = fmt.Sprintf("{{ $class.Alias }}::%s", properties[i].GetName())
-        getter.MethodData = fmt.Sprintf("{{ $class.Alias }}::%s", properties[i].GetName())
-            {{ else -}}
-        setter.MethodData = fmt.Sprintf("{{ $className }}::%s", properties[i].GetName())
-        getter.MethodData = fmt.Sprintf("{{ $className }}::%s", properties[i].GetName())
-            {{ end -}}
-
-        properties[i].SetSetter(&setter)
-        properties[i].SetGetter(&getter)
-    }
-
-
 
     // signals attached to the instance
     signals := []gdnative.GDSignal{

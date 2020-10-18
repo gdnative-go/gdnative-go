@@ -36,19 +36,13 @@ func (v View) Debug(itm string) string {
 // IsValidProperty will determine if we should be generating the given property
 // in our Go structure.
 func (v View) IsValidProperty(prop TypeDef) bool {
-	if strings.Contains(prop.Name, "_touch_that") {
-		return false
-	}
-	return true
+	return !strings.Contains(prop.Name, "_touch_that")
 }
 
 // IsGodotBaseType will check to see if the given simple type definition is defining
 // a built-in C type or a Godot type.
 func (v View) IsGodotBaseType(typeDef TypeDef) bool {
-	if strings.Contains(typeDef.Base, "godot_") {
-		return true
-	}
-	return false
+	return strings.Contains(typeDef.Base, "godot_")
 }
 
 // ToGoBaseType will convert a base type name to the correct Go base type.
@@ -85,15 +79,13 @@ func (v View) HasReturn(str string) bool {
 	if str == "void" || str == "Void" || strings.Contains(str, "void") {
 		return false
 	}
+
 	return true
 }
 
 // HasPointerReturn returns true if the given string contains an indirection operator
 func (v View) HasPointerReturn(str string) bool {
-	if strings.Contains(str, "*") {
-		return true
-	}
-	return false
+	return strings.Contains(str, "*")
 }
 
 // IsVoidPointerType returns true if the given string matches godot object void types
@@ -107,19 +99,13 @@ func (v View) IsVoidPointerType(str string) bool {
 
 // IsWcharT returns true if the given strig contains wchar_t type
 func (v View) IsWcharT(str string) bool {
-	if strings.Contains(str, "wchar_t") {
-		return true
-	}
-	return false
+	return strings.Contains(str, "wchar_t")
 }
 
 // IsDoublePointer returns true if the given string contains two indirection
 // operators one beside another
 func (v View) IsDoublePointer(str string) bool {
-	if strings.Contains(str, "**") {
-		return true
-	}
-	return false
+	return strings.Contains(str, "**")
 }
 
 // ToGoArgType converts arguments types to Go valid types
@@ -235,7 +221,6 @@ func (v View) MethodsList(typeDef TypeDef) []Method {
 				methods = append(methods, method)
 				break
 			}
-
 		}
 	}
 
@@ -244,10 +229,7 @@ func (v View) MethodsList(typeDef TypeDef) []Method {
 
 // MethodIsConstructor returns true if the given method contains the `_new` sub string
 func (v View) MethodIsConstructor(method Method) bool {
-	if strings.Contains(method.Name, "_new") {
-		return true
-	}
-	return false
+	return strings.Contains(method.Name, "_new")
 }
 
 // NotSelfArg return false if the given string contains any reference to self or p_self
@@ -255,6 +237,7 @@ func (v View) NotSelfArg(str string) bool {
 	if str == "self" || str == "p_self" {
 		return false
 	}
+
 	return true
 }
 
@@ -363,7 +346,8 @@ func Generate() {
 
 	// Organize the type definitions by header name
 	for _, typeDef := range allTypeDefinitions {
-		if _, ok := defMap[typeDef.HeaderName]; ok {
+		_, ok := defMap[typeDef.HeaderName]
+		if ok {
 			defMap[typeDef.HeaderName] = append(defMap[typeDef.HeaderName], typeDef)
 		} else {
 			defMap[typeDef.HeaderName] = []TypeDef{typeDef}
@@ -380,7 +364,7 @@ func Generate() {
 		outFileName := strings.Replace(headerPath[len(headerPath)-1], ".h", ".gen.go", 1)
 		outFileName = strings.Replace(outFileName, "godot_", "", 1)
 
-		log.Println("  Generating Go code for:", outFileName+"...")
+		log.Printf("  Generating Go code for: \x1b[32m%s\x1b[0m...\n", outFileName)
 
 		// Create a structure for our template view. This will contain all of
 		// the data we need to construct our Go wrappers.
@@ -411,7 +395,7 @@ func Generate() {
 
 		// Run gofmt on the generated Go file.
 		log.Println("  Running gofmt on output:", outFileName+"...")
-		if noGoImport == false {
+		if !noGoImport {
 			GoFmt(packagePath + "/gdnative/" + outFileName)
 		}
 
@@ -437,10 +421,10 @@ func WriteTemplate(templatePath, outputPath string, view View) {
 
 	// Open the output file for writing
 	f, err := os.Create(outputPath)
-	defer f.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 
 	// Write the template with the given view.
 	err = t.Execute(f, view)
